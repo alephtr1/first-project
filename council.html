@@ -1489,12 +1489,29 @@
                 apiMessages.push({ role: 'system', content: modelConfig.systemPrompt.trim() });
             }
 
-            for (const msg of messages) {
+            // Build conversation with new format to prevent "script" continuation
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
+
                 if (msg.role === 'user') {
-                    apiMessages.push({ role: 'user', content: msg.content });
-                } else {
-                    const prefix = `[${getShortModelName(msg.model)}]: `;
-                    apiMessages.push({ role: 'assistant', content: prefix + msg.content });
+                    // Check if there are AI responses after this user message
+                    const aiResponses = [];
+                    let j = i + 1;
+                    while (j < messages.length && messages[j].role === 'assistant') {
+                        const aiMsg = messages[j];
+                        aiResponses.push(`- ${getShortModelName(aiMsg.model)} said: "${aiMsg.content}"`);
+                        j++;
+                    }
+
+                    if (aiResponses.length > 0) {
+                        // User message followed by AI responses - combine them
+                        const formattedContent = `${msg.content}\n\n---\nPrevious responses:\n${aiResponses.join('\n')}\n---\n\nYour turn to respond.`;
+                        apiMessages.push({ role: 'user', content: formattedContent });
+                        i = j - 1; // Skip the AI messages we just processed
+                    } else {
+                        // User message with no AI responses yet
+                        apiMessages.push({ role: 'user', content: msg.content + '\n\nYour turn to respond.' });
+                    }
                 }
             }
 
