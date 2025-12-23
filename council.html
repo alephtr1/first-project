@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Council - Multi-Model Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* Let Them Cook Toggle */
+        .cook-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cook-toggle label {
+            font-size: 0.875rem;
+            color: #8b949e;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #30363d;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #8b949e;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #f97316;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+            background: #fff;
+        }
+
+        .settings-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: #30363d;
+            color: #e6edf3;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            display: none;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 20px;
+        }
+
+        .settings-panel.open {
+            display: block;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 16px;
+            max-width: 600px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: #8b949e;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-group input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 0.875rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .setting-group input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .setting-group input::placeholder {
+            color: #484f58;
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            max-width: 800px;
+            margin: 0 auto 16px;
+            padding: 16px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: #1f6feb;
+            margin-left: auto;
+            max-width: 600px;
+        }
+
+        .message.assistant {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .model-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .model-badge.model-0 { background: #238636; color: #fff; }
+        .model-badge.model-1 { background: #8957e5; color: #fff; }
+        .model-badge.model-2 { background: #f85149; color: #fff; }
+        .model-badge.user { background: #1f6feb; color: #fff; }
+
+        .message-content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-content p {
+            margin-bottom: 0.75em;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto 16px;
+            padding: 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #8b949e;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            padding: 12px 16px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 48px;
+            max-height: 200px;
+            line-height: 1.5;
+        }
+
+        .input-wrapper textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .input-wrapper textarea::placeholder {
+            color: #484f58;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: #238636;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-self: flex-end;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #2ea043;
+        }
+
+        .send-btn:disabled {
+            background: #21262d;
+            color: #484f58;
+            cursor: not-allowed;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 8px 20px;
+            background: #0d1117;
+            border-top: 1px solid #30363d;
+            font-size: 0.75rem;
+            color: #8b949e;
+            text-align: center;
+        }
+
+        .status-bar.error {
+            color: #f85149;
+            background: #1a0d0e;
+        }
+
+        .status-bar.cooking {
+            color: #f97316;
+            background: #1a1207;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #8b949e;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: #e6edf3;
+        }
+
+        .empty-state p {
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        /* Round Separator */
+        .round-separator {
+            max-width: 800px;
+            margin: 24px auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #484f58;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .round-separator::before,
+        .round-separator::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #30363d;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Council</h1>
+        <div class="header-controls">
+            <div class="cook-toggle">
+                <label for="cookToggle">Let Them Cook</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="cookToggle">
+                    <span class="toggle-slider"></span>
+                </div>
+            </div>
+            <button class="settings-btn" id="settingsBtn">Settings</button>
+        </div>
+    </header>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-grid">
+            <div class="setting-group">
+                <label>OpenRouter API Key</label>
+                <input type="password" id="apiKey" placeholder="sk-or-...">
+            </div>
+            <div class="models-grid">
+                <div class="setting-group">
+                    <label>Model 1</label>
+                    <input type="text" id="model0" placeholder="anthropic/claude-3.5-sonnet">
+                </div>
+                <div class="setting-group">
+                    <label>Model 2</label>
+                    <input type="text" id="model1" placeholder="openai/gpt-4o">
+                </div>
+                <div class="setting-group">
+                    <label>Model 3</label>
+                    <input type="text" id="model2" placeholder="google/gemini-pro-1.5">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="empty-state" id="emptyState">
+            <h2>Welcome to Council</h2>
+            <p>Configure your API key and models in Settings, then start a conversation. Each model will respond in sequence, building on previous responses.</p>
+        </div>
+    </div>
+
+    <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-header">
+            <span class="model-badge" id="typingBadge">Model</span>
+            <span>is thinking</span>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">Ready</div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Send a message to the Council..." rows="1"></textarea>
+            <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const state = {
+            messages: [],
+            isProcessing: false,
+            cookMode: false,
+            currentRound: 0
+        };
+
+        // DOM Elements
+        const elements = {
+            settingsBtn: document.getElementById('settingsBtn'),
+            settingsPanel: document.getElementById('settingsPanel'),
+            apiKey: document.getElementById('apiKey'),
+            models: [
+                document.getElementById('model0'),
+                document.getElementById('model1'),
+                document.getElementById('model2')
+            ],
+            chatContainer: document.getElementById('chatContainer'),
+            emptyState: document.getElementById('emptyState'),
+            typingIndicator: document.getElementById('typingIndicator'),
+            typingBadge: document.getElementById('typingBadge'),
+            statusBar: document.getElementById('statusBar'),
+            messageInput: document.getElementById('messageInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            cookToggle: document.getElementById('cookToggle')
+        };
+
+        // Model colors for badges
+        const modelColors = ['model-0', 'model-1', 'model-2'];
+
+        // Initialize
+        function init() {
+            loadSettings();
+            setupEventListeners();
+            autoResizeTextarea();
+        }
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const savedApiKey = localStorage.getItem('council_apiKey');
+            const savedModels = JSON.parse(localStorage.getItem('council_models') || '[]');
+
+            if (savedApiKey) elements.apiKey.value = savedApiKey;
+            savedModels.forEach((model, i) => {
+                if (elements.models[i]) elements.models[i].value = model;
+            });
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            localStorage.setItem('council_apiKey', elements.apiKey.value);
+            localStorage.setItem('council_models', JSON.stringify(
+                elements.models.map(m => m.value)
+            ));
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Settings toggle
+            elements.settingsBtn.addEventListener('click', () => {
+                elements.settingsPanel.classList.toggle('open');
+            });
+
+            // Save settings on input change
+            elements.apiKey.addEventListener('change', saveSettings);
+            elements.models.forEach(m => m.addEventListener('change', saveSettings));
+
+            // Cook toggle
+            elements.cookToggle.addEventListener('change', (e) => {
+                state.cookMode = e.target.checked;
+                if (state.cookMode && !state.isProcessing && state.messages.length > 0) {
+                    // Start cooking if we have messages and aren't already processing
+                    startCookingRound();
+                }
+            });
+
+            // Send message
+            elements.sendBtn.addEventListener('click', sendMessage);
+            elements.messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            elements.messageInput.addEventListener('input', autoResizeTextarea);
+        }
+
+        function autoResizeTextarea() {
+            const textarea = elements.messageInput;
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+
+        // Get active models (non-empty)
+        function getActiveModels() {
+            return elements.models
+                .map((m, i) => ({ id: m.value.trim(), index: i }))
+                .filter(m => m.id);
+        }
+
+        // Update status bar
+        function setStatus(message, type = '') {
+            elements.statusBar.textContent = message;
+            elements.statusBar.className = 'status-bar' + (type ? ' ' + type : '');
+        }
+
+        // Show typing indicator
+        function showTyping(modelName, colorClass) {
+            elements.typingBadge.textContent = modelName;
+            elements.typingBadge.className = 'model-badge ' + colorClass;
+            elements.typingIndicator.classList.add('active');
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            elements.typingIndicator.classList.remove('active');
+        }
+
+        // Add message to chat
+        function addMessage(role, content, modelName = null, modelIndex = null) {
+            // Hide empty state
+            elements.emptyState.style.display = 'none';
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+
+            let headerHtml = '';
+            if (role === 'user') {
+                headerHtml = `
+                    <div class="message-header">
+                        <span class="model-badge user">You</span>
+                    </div>
+                `;
+            } else if (modelName) {
+                const colorClass = modelColors[modelIndex] || 'model-0';
+                headerHtml = `
+                    <div class="message-header">
+                        <span class="model-badge ${colorClass}">${getShortModelName(modelName)}</span>
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                ${headerHtml}
+                <div class="message-content">${escapeHtml(content)}</div>
+            `;
+
+            elements.chatContainer.appendChild(messageDiv);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+
+        // Add round separator
+        function addRoundSeparator(roundNum) {
+            const separator = document.createElement('div');
+            separator.className = 'round-separator';
+            separator.textContent = `Round ${roundNum}`;
+            elements.chatContainer.appendChild(separator);
+        }
+
+        // Get short model name for display
+        function getShortModelName(modelId) {
+            const parts = modelId.split('/');
+            return parts[parts.length - 1].split('-').slice(0, 2).join('-');
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Build messages array for API
+        function buildApiMessages(forModel) {
+            const systemPrompt = `You are participating in a multi-model discussion called "Council". Multiple AI models are responding to the user in sequence.
+
+Your role: BUILD UPON previous responses - add new perspectives, challenge assumptions, expand ideas, or offer alternative viewpoints. Do NOT simply agree or repeat what others said. Be concise but substantive.
+
+You are: ${forModel}`;
+
+            const apiMessages = [{ role: 'system', content: systemPrompt }];
+
+            for (const msg of state.messages) {
+                if (msg.role === 'user') {
+                    apiMessages.push({ role: 'user', content: msg.content });
+                } else {
+                    // Format assistant messages to show which model said what
+                    const prefix = `[${getShortModelName(msg.model)}]: `;
+                    apiMessages.push({ role: 'assistant', content: prefix + msg.content });
+                }
+            }
+
+            return apiMessages;
+        }
+
+        // Call OpenRouter API
+        async function callModel(modelId, messages) {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${elements.apiKey.value}`,
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'Council'
+                },
+                body: JSON.stringify({
+                    model: modelId,
+                    messages: messages
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || `API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        // Send user message and get responses
+        async function sendMessage() {
+            const content = elements.messageInput.value.trim();
+            if (!content || state.isProcessing) return;
+
+            const apiKey = elements.apiKey.value.trim();
+            if (!apiKey) {
+                setStatus('Please set your API key in Settings', 'error');
+                elements.settingsPanel.classList.add('open');
+                return;
+            }
+
+            const activeModels = getActiveModels();
+            if (activeModels.length === 0) {
+                setStatus('Please configure at least one model in Settings', 'error');
+                elements.settingsPanel.classList.add('open');
+                return;
+            }
+
+            // Clear input
+            elements.messageInput.value = '';
+            autoResizeTextarea();
+
+            // Add user message
+            state.messages.push({ role: 'user', content });
+            addMessage('user', content);
+
+            // Get responses from all models
+            await runModelRound(activeModels);
+        }
+
+        // Run a round of model responses
+        async function runModelRound(activeModels) {
+            state.isProcessing = true;
+            elements.sendBtn.disabled = true;
+
+            try {
+                for (const model of activeModels) {
+                    const colorClass = modelColors[model.index];
+                    showTyping(getShortModelName(model.id), colorClass);
+                    setStatus(`Waiting for ${getShortModelName(model.id)}...`);
+
+                    const apiMessages = buildApiMessages(model.id);
+                    const response = await callModel(model.id, apiMessages);
+
+                    hideTyping();
+
+                    // Add to state and UI
+                    state.messages.push({ role: 'assistant', content: response, model: model.id });
+                    addMessage('assistant', response, model.id, model.index);
+                }
+
+                // Round complete
+                state.currentRound++;
+
+                if (state.cookMode) {
+                    setStatus('Cooking... Toggle off to stop', 'cooking');
+                    // Small delay before next round
+                    await new Promise(r => setTimeout(r, 1000));
+                    if (state.cookMode) {
+                        addRoundSeparator(state.currentRound + 1);
+                        await runModelRound(activeModels);
+                    }
+                } else {
+                    setStatus('Ready');
+                }
+            } catch (error) {
+                hideTyping();
+                setStatus('Error: ' + error.message, 'error');
+                console.error('API Error:', error);
+            } finally {
+                if (!state.cookMode) {
+                    state.isProcessing = false;
+                    elements.sendBtn.disabled = false;
+                }
+            }
+        }
+
+        // Start cooking round (when toggle is turned on mid-conversation)
+        async function startCookingRound() {
+            const activeModels = getActiveModels();
+            if (activeModels.length === 0) return;
+
+            state.currentRound++;
+            addRoundSeparator(state.currentRound);
+            await runModelRound(activeModels);
+
+            if (!state.cookMode) {
+                state.isProcessing = false;
+                elements.sendBtn.disabled = false;
+            }
+        }
+
+        // Stop cooking when toggle is turned off
+        elements.cookToggle.addEventListener('change', (e) => {
+            state.cookMode = e.target.checked;
+            if (!state.cookMode) {
+                setStatus('Ready');
+                state.isProcessing = false;
+                elements.sendBtn.disabled = false;
+            }
+        });
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
