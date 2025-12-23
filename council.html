@@ -77,7 +77,7 @@
             top: 0;
             right: 0;
             bottom: 0;
-            width: 380px;
+            width: 420px;
             max-width: 90vw;
             background: #161b22;
             border-left: 1px solid #30363d;
@@ -172,19 +172,26 @@
         .model-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
         }
 
-        .model-item {
+        .model-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .model-card-header {
             display: flex;
             gap: 8px;
             align-items: center;
         }
 
-        .model-item input {
+        .model-card-header input {
             flex: 1;
-            padding: 10px 12px;
-            background: #0d1117;
+            padding: 8px 10px;
+            background: #161b22;
             border: 1px solid #30363d;
             border-radius: 6px;
             color: #e6edf3;
@@ -192,12 +199,12 @@
             font-family: 'SF Mono', Monaco, monospace;
         }
 
-        .model-item input:focus {
+        .model-card-header input:focus {
             outline: none;
             border-color: #58a6ff;
         }
 
-        .model-item input::placeholder {
+        .model-card-header input::placeholder {
             color: #484f58;
         }
 
@@ -205,11 +212,11 @@
             background: #21262d;
             border: 1px solid #30363d;
             color: #f85149;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -225,6 +232,62 @@
         .remove-model-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
+        }
+
+        .system-prompt-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #8b949e;
+            cursor: pointer;
+            user-select: none;
+            margin-top: 8px;
+        }
+
+        .system-prompt-toggle:hover {
+            color: #e6edf3;
+        }
+
+        .system-prompt-toggle .chevron {
+            transition: transform 0.2s;
+            font-size: 0.625rem;
+        }
+
+        .system-prompt-toggle.open .chevron {
+            transform: rotate(90deg);
+        }
+
+        .system-prompt-wrapper {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .system-prompt-wrapper.open {
+            display: block;
+        }
+
+        .system-prompt-wrapper textarea {
+            width: 100%;
+            padding: 8px 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 0.8125rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            line-height: 1.4;
+        }
+
+        .system-prompt-wrapper textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .system-prompt-wrapper textarea::placeholder {
+            color: #484f58;
         }
 
         .add-model-btn {
@@ -261,6 +324,7 @@
             padding: 16px;
             border-radius: 8px;
             animation: fadeIn 0.3s ease;
+            position: relative;
         }
 
         @keyframes fadeIn {
@@ -282,7 +346,7 @@
         .message-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
             margin-bottom: 8px;
         }
 
@@ -305,6 +369,41 @@
         .model-badge.model-7 { background: #84cc16; color: #fff; }
         .model-badge.user { background: #1f6feb; color: #fff; }
 
+        /* Message Actions */
+        .message-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .msg-action-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .msg-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .msg-action-btn.delete:hover {
+            color: #f85149;
+        }
+
         .message-content {
             line-height: 1.6;
             white-space: pre-wrap;
@@ -317,6 +416,65 @@
 
         .message-content p:last-child {
             margin-bottom: 0;
+        }
+
+        /* Edit mode */
+        .message.editing .message-content {
+            display: none;
+        }
+
+        .edit-textarea {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #e6edf3;
+            font-size: inherit;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            line-height: 1.6;
+        }
+
+        .edit-textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: flex-end;
+        }
+
+        .edit-actions button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .edit-save-btn {
+            background: #238636;
+            border: none;
+            color: #fff;
+        }
+
+        .edit-save-btn:hover {
+            background: #2ea043;
+        }
+
+        .edit-cancel-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e6edf3;
+        }
+
+        .edit-cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         /* Typing Indicator */
@@ -625,13 +783,20 @@
     </div>
 
     <script>
+        // SVG Icons
+        const icons = {
+            edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+            retry: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>`,
+            delete: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
+        };
+
         // State
         const state = {
             messages: [],
             isProcessing: false,
             cookMode: false,
             currentRound: 0,
-            models: []
+            models: [] // [{id: '', systemPrompt: ''}, ...]
         };
 
         // Model colors for badges (cycles if more than 8 models)
@@ -680,8 +845,20 @@
 
             if (savedApiKey) elements.apiKey.value = savedApiKey;
 
-            // Load saved models or default to 3 empty slots
-            state.models = savedModels.length > 0 ? savedModels : ['', '', ''];
+            // Migrate old format (array of strings) to new format (array of objects)
+            if (savedModels.length > 0) {
+                if (typeof savedModels[0] === 'string') {
+                    state.models = savedModels.map(id => ({ id, systemPrompt: '' }));
+                } else {
+                    state.models = savedModels;
+                }
+            } else {
+                state.models = [
+                    { id: '', systemPrompt: '' },
+                    { id: '', systemPrompt: '' },
+                    { id: '', systemPrompt: '' }
+                ];
+            }
         }
 
         // Save settings to localStorage
@@ -695,17 +872,11 @@
             elements.modelList.innerHTML = '';
 
             state.models.forEach((model, index) => {
-                const item = document.createElement('div');
-                item.className = 'model-item';
+                const card = document.createElement('div');
+                card.className = 'model-card';
 
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = model;
-                input.placeholder = placeholders[index % placeholders.length];
-                input.addEventListener('input', (e) => {
-                    state.models[index] = e.target.value;
-                    saveSettings();
-                });
+                const header = document.createElement('div');
+                header.className = 'model-card-header';
 
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-model-btn';
@@ -713,9 +884,51 @@
                 removeBtn.disabled = state.models.length <= 1;
                 removeBtn.addEventListener('click', () => removeModel(index));
 
-                item.appendChild(removeBtn);
-                item.appendChild(input);
-                elements.modelList.appendChild(item);
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = model.id;
+                input.placeholder = placeholders[index % placeholders.length];
+                input.addEventListener('input', (e) => {
+                    state.models[index].id = e.target.value;
+                    saveSettings();
+                });
+
+                header.appendChild(removeBtn);
+                header.appendChild(input);
+
+                // System prompt toggle
+                const toggle = document.createElement('div');
+                toggle.className = 'system-prompt-toggle';
+                toggle.innerHTML = `<span class="chevron">▶</span> System Prompt`;
+
+                const promptWrapper = document.createElement('div');
+                promptWrapper.className = 'system-prompt-wrapper';
+
+                const textarea = document.createElement('textarea');
+                textarea.placeholder = 'Custom instructions for this model...';
+                textarea.value = model.systemPrompt || '';
+                textarea.addEventListener('input', (e) => {
+                    state.models[index].systemPrompt = e.target.value;
+                    saveSettings();
+                });
+
+                promptWrapper.appendChild(textarea);
+
+                toggle.addEventListener('click', () => {
+                    toggle.classList.toggle('open');
+                    promptWrapper.classList.toggle('open');
+                });
+
+                // If there's a system prompt, show it expanded
+                if (model.systemPrompt) {
+                    toggle.classList.add('open');
+                    promptWrapper.classList.add('open');
+                }
+
+                card.appendChild(header);
+                card.appendChild(toggle);
+                card.appendChild(promptWrapper);
+                elements.modelList.appendChild(card);
             });
 
             updateRemoveButtons();
@@ -731,11 +944,10 @@
 
         // Add model
         function addModel() {
-            state.models.push('');
+            state.models.push({ id: '', systemPrompt: '' });
             saveSettings();
             renderModelList();
-            // Focus the new input
-            const inputs = elements.modelList.querySelectorAll('input');
+            const inputs = elements.modelList.querySelectorAll('.model-card-header input');
             inputs[inputs.length - 1].focus();
         }
 
@@ -761,18 +973,12 @@
 
         // Setup event listeners
         function setupEventListeners() {
-            // Settings toggle
             elements.settingsBtn.addEventListener('click', openSettings);
             elements.settingsClose.addEventListener('click', closeSettings);
             elements.settingsOverlay.addEventListener('click', closeSettings);
-
-            // Save API key on input
             elements.apiKey.addEventListener('input', saveSettings);
-
-            // Add model button
             elements.addModelBtn.addEventListener('click', addModel);
 
-            // Cook toggle
             elements.cookToggle.addEventListener('change', (e) => {
                 state.cookMode = e.target.checked;
                 if (state.cookMode && !state.isProcessing && state.messages.length > 0) {
@@ -785,7 +991,6 @@
                 }
             });
 
-            // Send message
             elements.sendBtn.addEventListener('click', sendMessage);
             elements.messageInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -794,7 +999,6 @@
                 }
             });
 
-            // Auto-resize textarea
             elements.messageInput.addEventListener('input', autoResizeTextarea);
         }
 
@@ -807,8 +1011,8 @@
         // Get active models (non-empty)
         function getActiveModels() {
             return state.models
-                .map((id, index) => ({ id: id.trim(), index }))
-                .filter(m => m.id);
+                .map((m, index) => ({ ...m, index }))
+                .filter(m => m.id.trim());
         }
 
         // Update status bar
@@ -830,38 +1034,183 @@
             elements.typingIndicator.classList.remove('active');
         }
 
-        // Add message to chat
-        function addMessage(role, content, modelName = null, modelIndex = null) {
+        // Re-render all messages
+        function renderMessages() {
+            const toRemove = elements.chatContainer.querySelectorAll('.message, .round-separator');
+            toRemove.forEach(el => el.remove());
+
+            if (state.messages.length === 0) {
+                elements.emptyState.style.display = 'flex';
+                return;
+            }
+
             elements.emptyState.style.display = 'none';
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+            state.messages.forEach((msg, index) => {
+                addMessageToDOM(msg, index);
+            });
 
-            let headerHtml = '';
-            if (role === 'user') {
-                headerHtml = `
-                    <div class="message-header">
-                        <span class="model-badge user">You</span>
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+
+        // Add message to DOM
+        function addMessageToDOM(msg, index) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (msg.role === 'user' ? 'user' : 'assistant');
+            messageDiv.dataset.index = index;
+
+            const isUser = msg.role === 'user';
+            const colorClass = isUser ? 'user' : modelColors[msg.modelIndex % modelColors.length];
+            const badgeText = isUser ? 'You' : getShortModelName(msg.model);
+
+            let actionsHtml = '';
+            if (isUser) {
+                actionsHtml = `
+                    <div class="message-actions">
+                        <button class="msg-action-btn edit" title="Edit">${icons.edit}</button>
+                        <button class="msg-action-btn retry" title="Retry from here">${icons.retry}</button>
                     </div>
                 `;
-            } else if (modelName) {
-                const colorClass = modelColors[modelIndex % modelColors.length];
-                headerHtml = `
-                    <div class="message-header">
-                        <span class="model-badge ${colorClass}">${getShortModelName(modelName)}</span>
+            } else {
+                actionsHtml = `
+                    <div class="message-actions">
+                        <button class="msg-action-btn retry" title="Regenerate">${icons.retry}</button>
+                        <button class="msg-action-btn delete" title="Delete">${icons.delete}</button>
                     </div>
                 `;
             }
 
             messageDiv.innerHTML = `
-                ${headerHtml}
-                <div class="message-content">${escapeHtml(content)}</div>
+                <div class="message-header">
+                    <span class="model-badge ${colorClass}">${badgeText}</span>
+                    ${actionsHtml}
+                </div>
+                <div class="message-content">${escapeHtml(msg.content)}</div>
             `;
 
-            elements.chatContainer.appendChild(messageDiv);
-            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+            if (isUser) {
+                messageDiv.querySelector('.edit').addEventListener('click', () => startEditMessage(index));
+                messageDiv.querySelector('.retry').addEventListener('click', () => retryFromMessage(index));
+            } else {
+                messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
+                messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
+            }
 
-            return messageDiv;
+            elements.chatContainer.appendChild(messageDiv);
+        }
+
+        // Add message to chat (for new messages)
+        function addMessage(role, content, model = null, modelIndex = null) {
+            elements.emptyState.style.display = 'none';
+
+            const msg = { role, content, model, modelIndex };
+            const index = state.messages.length;
+            state.messages.push(msg);
+            addMessageToDOM(msg, index);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+
+        // Start editing a user message
+        function startEditMessage(index) {
+            if (state.isProcessing) return;
+
+            const msg = state.messages[index];
+            const messageEl = elements.chatContainer.querySelector(`.message[data-index="${index}"]`);
+            if (!messageEl) return;
+
+            messageEl.classList.add('editing');
+
+            const editContainer = document.createElement('div');
+            editContainer.className = 'edit-container';
+            editContainer.innerHTML = `
+                <textarea class="edit-textarea">${msg.content}</textarea>
+                <div class="edit-actions">
+                    <button class="edit-cancel-btn">Cancel</button>
+                    <button class="edit-save-btn">Save & Retry</button>
+                </div>
+            `;
+
+            messageEl.appendChild(editContainer);
+
+            const textarea = editContainer.querySelector('.edit-textarea');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+            editContainer.querySelector('.edit-cancel-btn').addEventListener('click', () => {
+                messageEl.classList.remove('editing');
+                editContainer.remove();
+            });
+
+            editContainer.querySelector('.edit-save-btn').addEventListener('click', () => {
+                const newContent = textarea.value.trim();
+                if (newContent) {
+                    state.messages[index].content = newContent;
+                    state.messages = state.messages.slice(0, index + 1);
+                    renderMessages();
+                    runModelRound(getActiveModels());
+                }
+            });
+        }
+
+        // Retry from a user message
+        function retryFromMessage(index) {
+            if (state.isProcessing) return;
+            state.messages = state.messages.slice(0, index + 1);
+            renderMessages();
+            runModelRound(getActiveModels());
+        }
+
+        // Retry a single AI message
+        async function retryAIMessage(index) {
+            if (state.isProcessing) return;
+
+            const msg = state.messages[index];
+            if (msg.role !== 'assistant') return;
+
+            const modelConfig = state.models.find(m => m.id.trim() === msg.model);
+            if (!modelConfig) {
+                setStatus('Model not found in settings', 'error');
+                return;
+            }
+
+            const modelIndex = state.models.findIndex(m => m.id.trim() === msg.model);
+
+            state.isProcessing = true;
+            elements.sendBtn.disabled = true;
+
+            try {
+                const colorClass = modelColors[modelIndex % modelColors.length];
+                showTyping(getShortModelName(msg.model), colorClass);
+                setStatus(`Regenerating ${getShortModelName(msg.model)}...`);
+
+                const contextMessages = state.messages.slice(0, index);
+                const apiMessages = buildApiMessages(modelConfig, contextMessages);
+                const response = await callModel(msg.model, apiMessages);
+
+                hideTyping();
+
+                state.messages[index].content = response;
+                renderMessages();
+                setStatus('Ready');
+            } catch (error) {
+                hideTyping();
+                setStatus('Error: ' + error.message, 'error');
+                console.error('API Error:', error);
+            } finally {
+                state.isProcessing = false;
+                elements.sendBtn.disabled = false;
+            }
+        }
+
+        // Delete an AI message
+        function deleteAIMessage(index) {
+            if (state.isProcessing) return;
+
+            const msg = state.messages[index];
+            if (msg.role !== 'assistant') return;
+
+            state.messages.splice(index, 1);
+            renderMessages();
         }
 
         // Add round separator
@@ -886,16 +1235,22 @@
         }
 
         // Build messages array for API
-        function buildApiMessages(forModel) {
-            const systemPrompt = `You are participating in a multi-model discussion called "Council". Multiple AI models are responding to the user in sequence.
+        function buildApiMessages(modelConfig, contextMessages = null) {
+            const messages = contextMessages || state.messages;
+
+            let systemPrompt = `You are participating in a multi-model discussion called "Council". Multiple AI models are responding to the user in sequence.
 
 Your role: BUILD UPON previous responses - add new perspectives, challenge assumptions, expand ideas, or offer alternative viewpoints. Do NOT simply agree or repeat what others said. Be concise but substantive.
 
-You are: ${forModel}`;
+You are: ${modelConfig.id}`;
+
+            if (modelConfig.systemPrompt && modelConfig.systemPrompt.trim()) {
+                systemPrompt = modelConfig.systemPrompt.trim() + '\n\n' + systemPrompt;
+            }
 
             const apiMessages = [{ role: 'system', content: systemPrompt }];
 
-            for (const msg of state.messages) {
+            for (const msg of messages) {
                 if (msg.role === 'user') {
                     apiMessages.push({ role: 'user', content: msg.content });
                 } else {
@@ -954,7 +1309,6 @@ You are: ${forModel}`;
             elements.messageInput.value = '';
             autoResizeTextarea();
 
-            state.messages.push({ role: 'user', content });
             addMessage('user', content);
 
             await runModelRound(activeModels);
@@ -971,12 +1325,11 @@ You are: ${forModel}`;
                     showTyping(getShortModelName(model.id), colorClass);
                     setStatus(`Waiting for ${getShortModelName(model.id)}...`);
 
-                    const apiMessages = buildApiMessages(model.id);
+                    const apiMessages = buildApiMessages(model);
                     const response = await callModel(model.id, apiMessages);
 
                     hideTyping();
 
-                    state.messages.push({ role: 'assistant', content: response, model: model.id });
                     addMessage('assistant', response, model.id, model.index);
                 }
 
