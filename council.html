@@ -36,70 +36,6 @@
             color: #e6edf3;
         }
 
-        .header-controls {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        /* Let Them Cook Toggle */
-        .cook-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .cook-toggle label {
-            font-size: 0.875rem;
-            color: #8b949e;
-            cursor: pointer;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #30363d;
-            border-radius: 24px;
-            transition: 0.3s;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background: #8b949e;
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background: #f97316;
-        }
-
-        .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(20px);
-            background: #fff;
-        }
-
         .settings-btn {
             background: #21262d;
             border: 1px solid #30363d;
@@ -116,34 +52,94 @@
             color: #e6edf3;
         }
 
-        /* Settings Panel */
+        /* Settings Overlay */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 100;
+        }
+
+        .settings-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Settings Panel - Right Drawer */
         .settings-panel {
-            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 380px;
+            max-width: 90vw;
             background: #161b22;
-            border-bottom: 1px solid #30363d;
-            padding: 20px;
+            border-left: 1px solid #30363d;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
         }
 
         .settings-panel.open {
-            display: block;
+            transform: translateX(0);
         }
 
-        .settings-grid {
-            display: grid;
-            gap: 16px;
-            max-width: 600px;
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #30363d;
         }
 
-        .setting-group label {
+        .settings-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .settings-close:hover {
+            color: #e6edf3;
+        }
+
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group > label {
             display: block;
             font-size: 0.75rem;
             color: #8b949e;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .setting-group input {
+        .setting-group input[type="password"],
+        .setting-group input[type="text"] {
             width: 100%;
             padding: 10px 12px;
             background: #0d1117;
@@ -163,10 +159,93 @@
             color: #484f58;
         }
 
-        .models-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 12px;
+        /* Model List */
+        .models-section > label {
+            display: block;
+            font-size: 0.75rem;
+            color: #8b949e;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .model-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .model-item input {
+            flex: 1;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 0.875rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .model-item input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .model-item input::placeholder {
+            color: #484f58;
+        }
+
+        .remove-model-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #f85149;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .remove-model-btn:hover:not(:disabled) {
+            background: #f8514922;
+            border-color: #f85149;
+        }
+
+        .remove-model-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .add-model-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .add-model-btn:hover {
+            background: #30363d;
+            color: #e6edf3;
         }
 
         /* Chat Container */
@@ -219,6 +298,11 @@
         .model-badge.model-0 { background: #238636; color: #fff; }
         .model-badge.model-1 { background: #8957e5; color: #fff; }
         .model-badge.model-2 { background: #f85149; color: #fff; }
+        .model-badge.model-3 { background: #1f6feb; color: #fff; }
+        .model-badge.model-4 { background: #f97316; color: #fff; }
+        .model-badge.model-5 { background: #06b6d4; color: #fff; }
+        .model-badge.model-6 { background: #ec4899; color: #fff; }
+        .model-badge.model-7 { background: #84cc16; color: #fff; }
         .model-badge.user { background: #1f6feb; color: #fff; }
 
         .message-content {
@@ -289,6 +373,7 @@
             margin: 0 auto;
             display: flex;
             gap: 12px;
+            align-items: flex-end;
         }
 
         .input-wrapper textarea {
@@ -315,6 +400,77 @@
             color: #484f58;
         }
 
+        .input-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        /* Let Them Cook Toggle */
+        .cook-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .cook-toggle label {
+            font-size: 0.75rem;
+            color: #8b949e;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #30363d;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background: #8b949e;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #f97316;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+            background: #fff;
+        }
+
         .send-btn {
             padding: 12px 24px;
             background: #238636;
@@ -324,7 +480,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
-            align-self: flex-end;
         }
 
         .send-btn:hover:not(:disabled) {
@@ -405,37 +560,29 @@
 <body>
     <header class="header">
         <h1>Council</h1>
-        <div class="header-controls">
-            <div class="cook-toggle">
-                <label for="cookToggle">Let Them Cook</label>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="cookToggle">
-                    <span class="toggle-slider"></span>
-                </div>
-            </div>
-            <button class="settings-btn" id="settingsBtn">Settings</button>
-        </div>
+        <button class="settings-btn" id="settingsBtn">Settings</button>
     </header>
 
+    <!-- Settings Overlay -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+
+    <!-- Settings Panel (Right Drawer) -->
     <div class="settings-panel" id="settingsPanel">
-        <div class="settings-grid">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="settings-close" id="settingsClose">&times;</button>
+        </div>
+        <div class="settings-content">
             <div class="setting-group">
                 <label>OpenRouter API Key</label>
                 <input type="password" id="apiKey" placeholder="sk-or-...">
             </div>
-            <div class="models-grid">
-                <div class="setting-group">
-                    <label>Model 1</label>
-                    <input type="text" id="model0" placeholder="anthropic/claude-3.5-sonnet">
-                </div>
-                <div class="setting-group">
-                    <label>Model 2</label>
-                    <input type="text" id="model1" placeholder="openai/gpt-4o">
-                </div>
-                <div class="setting-group">
-                    <label>Model 3</label>
-                    <input type="text" id="model2" placeholder="google/gemini-pro-1.5">
-                </div>
+            <div class="models-section">
+                <label>Models</label>
+                <div class="model-list" id="modelList"></div>
+                <button class="add-model-btn" id="addModelBtn">
+                    <span>+</span> Add Model
+                </button>
             </div>
         </div>
     </div>
@@ -464,7 +611,16 @@
     <div class="input-area">
         <div class="input-wrapper">
             <textarea id="messageInput" placeholder="Send a message to the Council..." rows="1"></textarea>
-            <button class="send-btn" id="sendBtn">Send</button>
+            <div class="input-controls">
+                <div class="cook-toggle">
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="cookToggle">
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <label for="cookToggle">Let Them Cook</label>
+                </div>
+                <button class="send-btn" id="sendBtn">Send</button>
+            </div>
         </div>
     </div>
 
@@ -474,19 +630,31 @@
             messages: [],
             isProcessing: false,
             cookMode: false,
-            currentRound: 0
+            currentRound: 0,
+            models: []
         };
+
+        // Model colors for badges (cycles if more than 8 models)
+        const modelColors = ['model-0', 'model-1', 'model-2', 'model-3', 'model-4', 'model-5', 'model-6', 'model-7'];
+
+        // Placeholders for model inputs
+        const placeholders = [
+            'anthropic/claude-3.5-sonnet',
+            'openai/gpt-4o',
+            'google/gemini-pro-1.5',
+            'meta-llama/llama-3-70b-instruct',
+            'mistralai/mixtral-8x7b-instruct'
+        ];
 
         // DOM Elements
         const elements = {
             settingsBtn: document.getElementById('settingsBtn'),
             settingsPanel: document.getElementById('settingsPanel'),
+            settingsOverlay: document.getElementById('settingsOverlay'),
+            settingsClose: document.getElementById('settingsClose'),
             apiKey: document.getElementById('apiKey'),
-            models: [
-                document.getElementById('model0'),
-                document.getElementById('model1'),
-                document.getElementById('model2')
-            ],
+            modelList: document.getElementById('modelList'),
+            addModelBtn: document.getElementById('addModelBtn'),
             chatContainer: document.getElementById('chatContainer'),
             emptyState: document.getElementById('emptyState'),
             typingIndicator: document.getElementById('typingIndicator'),
@@ -497,14 +665,12 @@
             cookToggle: document.getElementById('cookToggle')
         };
 
-        // Model colors for badges
-        const modelColors = ['model-0', 'model-1', 'model-2'];
-
         // Initialize
         function init() {
             loadSettings();
             setupEventListeners();
             autoResizeTextarea();
+            renderModelList();
         }
 
         // Load settings from localStorage
@@ -513,36 +679,109 @@
             const savedModels = JSON.parse(localStorage.getItem('council_models') || '[]');
 
             if (savedApiKey) elements.apiKey.value = savedApiKey;
-            savedModels.forEach((model, i) => {
-                if (elements.models[i]) elements.models[i].value = model;
-            });
+
+            // Load saved models or default to 3 empty slots
+            state.models = savedModels.length > 0 ? savedModels : ['', '', ''];
         }
 
         // Save settings to localStorage
         function saveSettings() {
             localStorage.setItem('council_apiKey', elements.apiKey.value);
-            localStorage.setItem('council_models', JSON.stringify(
-                elements.models.map(m => m.value)
-            ));
+            localStorage.setItem('council_models', JSON.stringify(state.models));
+        }
+
+        // Render model list
+        function renderModelList() {
+            elements.modelList.innerHTML = '';
+
+            state.models.forEach((model, index) => {
+                const item = document.createElement('div');
+                item.className = 'model-item';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = model;
+                input.placeholder = placeholders[index % placeholders.length];
+                input.addEventListener('input', (e) => {
+                    state.models[index] = e.target.value;
+                    saveSettings();
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-model-btn';
+                removeBtn.innerHTML = '−';
+                removeBtn.disabled = state.models.length <= 1;
+                removeBtn.addEventListener('click', () => removeModel(index));
+
+                item.appendChild(removeBtn);
+                item.appendChild(input);
+                elements.modelList.appendChild(item);
+            });
+
+            updateRemoveButtons();
+        }
+
+        // Update remove button states
+        function updateRemoveButtons() {
+            const buttons = elements.modelList.querySelectorAll('.remove-model-btn');
+            buttons.forEach(btn => {
+                btn.disabled = state.models.length <= 1;
+            });
+        }
+
+        // Add model
+        function addModel() {
+            state.models.push('');
+            saveSettings();
+            renderModelList();
+            // Focus the new input
+            const inputs = elements.modelList.querySelectorAll('input');
+            inputs[inputs.length - 1].focus();
+        }
+
+        // Remove model
+        function removeModel(index) {
+            if (state.models.length <= 1) return;
+            state.models.splice(index, 1);
+            saveSettings();
+            renderModelList();
+        }
+
+        // Open settings
+        function openSettings() {
+            elements.settingsPanel.classList.add('open');
+            elements.settingsOverlay.classList.add('open');
+        }
+
+        // Close settings
+        function closeSettings() {
+            elements.settingsPanel.classList.remove('open');
+            elements.settingsOverlay.classList.remove('open');
         }
 
         // Setup event listeners
         function setupEventListeners() {
             // Settings toggle
-            elements.settingsBtn.addEventListener('click', () => {
-                elements.settingsPanel.classList.toggle('open');
-            });
+            elements.settingsBtn.addEventListener('click', openSettings);
+            elements.settingsClose.addEventListener('click', closeSettings);
+            elements.settingsOverlay.addEventListener('click', closeSettings);
 
-            // Save settings on input change
-            elements.apiKey.addEventListener('change', saveSettings);
-            elements.models.forEach(m => m.addEventListener('change', saveSettings));
+            // Save API key on input
+            elements.apiKey.addEventListener('input', saveSettings);
+
+            // Add model button
+            elements.addModelBtn.addEventListener('click', addModel);
 
             // Cook toggle
             elements.cookToggle.addEventListener('change', (e) => {
                 state.cookMode = e.target.checked;
                 if (state.cookMode && !state.isProcessing && state.messages.length > 0) {
-                    // Start cooking if we have messages and aren't already processing
                     startCookingRound();
+                }
+                if (!state.cookMode) {
+                    setStatus('Ready');
+                    state.isProcessing = false;
+                    elements.sendBtn.disabled = false;
                 }
             });
 
@@ -567,8 +806,8 @@
 
         // Get active models (non-empty)
         function getActiveModels() {
-            return elements.models
-                .map((m, i) => ({ id: m.value.trim(), index: i }))
+            return state.models
+                .map((id, index) => ({ id: id.trim(), index }))
                 .filter(m => m.id);
         }
 
@@ -593,7 +832,6 @@
 
         // Add message to chat
         function addMessage(role, content, modelName = null, modelIndex = null) {
-            // Hide empty state
             elements.emptyState.style.display = 'none';
 
             const messageDiv = document.createElement('div');
@@ -607,7 +845,7 @@
                     </div>
                 `;
             } else if (modelName) {
-                const colorClass = modelColors[modelIndex] || 'model-0';
+                const colorClass = modelColors[modelIndex % modelColors.length];
                 headerHtml = `
                     <div class="message-header">
                         <span class="model-badge ${colorClass}">${getShortModelName(modelName)}</span>
@@ -661,7 +899,6 @@ You are: ${forModel}`;
                 if (msg.role === 'user') {
                     apiMessages.push({ role: 'user', content: msg.content });
                 } else {
-                    // Format assistant messages to show which model said what
                     const prefix = `[${getShortModelName(msg.model)}]: `;
                     apiMessages.push({ role: 'assistant', content: prefix + msg.content });
                 }
@@ -703,26 +940,23 @@ You are: ${forModel}`;
             const apiKey = elements.apiKey.value.trim();
             if (!apiKey) {
                 setStatus('Please set your API key in Settings', 'error');
-                elements.settingsPanel.classList.add('open');
+                openSettings();
                 return;
             }
 
             const activeModels = getActiveModels();
             if (activeModels.length === 0) {
                 setStatus('Please configure at least one model in Settings', 'error');
-                elements.settingsPanel.classList.add('open');
+                openSettings();
                 return;
             }
 
-            // Clear input
             elements.messageInput.value = '';
             autoResizeTextarea();
 
-            // Add user message
             state.messages.push({ role: 'user', content });
             addMessage('user', content);
 
-            // Get responses from all models
             await runModelRound(activeModels);
         }
 
@@ -733,7 +967,7 @@ You are: ${forModel}`;
 
             try {
                 for (const model of activeModels) {
-                    const colorClass = modelColors[model.index];
+                    const colorClass = modelColors[model.index % modelColors.length];
                     showTyping(getShortModelName(model.id), colorClass);
                     setStatus(`Waiting for ${getShortModelName(model.id)}...`);
 
@@ -742,17 +976,14 @@ You are: ${forModel}`;
 
                     hideTyping();
 
-                    // Add to state and UI
                     state.messages.push({ role: 'assistant', content: response, model: model.id });
                     addMessage('assistant', response, model.id, model.index);
                 }
 
-                // Round complete
                 state.currentRound++;
 
                 if (state.cookMode) {
                     setStatus('Cooking... Toggle off to stop', 'cooking');
-                    // Small delay before next round
                     await new Promise(r => setTimeout(r, 1000));
                     if (state.cookMode) {
                         addRoundSeparator(state.currentRound + 1);
@@ -773,7 +1004,7 @@ You are: ${forModel}`;
             }
         }
 
-        // Start cooking round (when toggle is turned on mid-conversation)
+        // Start cooking round
         async function startCookingRound() {
             const activeModels = getActiveModels();
             if (activeModels.length === 0) return;
@@ -787,16 +1018,6 @@ You are: ${forModel}`;
                 elements.sendBtn.disabled = false;
             }
         }
-
-        // Stop cooking when toggle is turned off
-        elements.cookToggle.addEventListener('change', (e) => {
-            state.cookMode = e.target.checked;
-            if (!state.cookMode) {
-                setStatus('Ready');
-                state.isProcessing = false;
-                elements.sendBtn.disabled = false;
-            }
-        });
 
         // Initialize app
         init();
