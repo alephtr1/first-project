@@ -279,6 +279,23 @@
             border: 1px solid #30363d;
             border-radius: 8px;
             padding: 12px;
+            cursor: grab;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+        }
+
+        .model-card:active {
+            cursor: grabbing;
+        }
+
+        .model-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .model-card.drag-over {
+            border-color: #58a6ff;
+            background: #161b22;
         }
 
         .model-card-header {
@@ -1113,12 +1130,56 @@
         }
 
         // Render model list
+        // Drag state for model reordering
+        let draggedModelIndex = null;
+
         function renderModelList() {
             elements.modelList.innerHTML = '';
 
             state.models.forEach((model, index) => {
                 const card = document.createElement('div');
                 card.className = 'model-card';
+                card.draggable = true;
+                card.dataset.index = index;
+
+                // Drag event handlers
+                card.addEventListener('dragstart', (e) => {
+                    draggedModelIndex = index;
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    draggedModelIndex = null;
+                    document.querySelectorAll('.model-card.drag-over').forEach(el => {
+                        el.classList.remove('drag-over');
+                    });
+                });
+
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedModelIndex !== null && draggedModelIndex !== index) {
+                        card.classList.add('drag-over');
+                    }
+                });
+
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    if (draggedModelIndex !== null && draggedModelIndex !== index) {
+                        // Reorder models
+                        const movedModel = state.models.splice(draggedModelIndex, 1)[0];
+                        state.models.splice(index, 0, movedModel);
+                        saveSettings();
+                        renderModelList();
+                    }
+                });
 
                 const header = document.createElement('div');
                 header.className = 'model-card-header';
@@ -1127,7 +1188,10 @@
                 removeBtn.className = 'remove-model-btn';
                 removeBtn.innerHTML = '−';
                 removeBtn.disabled = state.models.length <= 1;
-                removeBtn.addEventListener('click', () => removeModel(index));
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeModel(index);
+                });
 
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -1137,6 +1201,8 @@
                     state.models[index].id = e.target.value;
                     saveSettings();
                 });
+                // Prevent drag when interacting with input
+                input.addEventListener('mousedown', (e) => e.stopPropagation());
 
                 header.appendChild(removeBtn);
                 header.appendChild(input);
@@ -1155,6 +1221,8 @@
                     state.models[index].systemPrompt = e.target.value;
                     saveSettings();
                 });
+                // Prevent drag when interacting with textarea
+                textarea.addEventListener('mousedown', (e) => e.stopPropagation());
 
                 promptWrapper.appendChild(textarea);
 
