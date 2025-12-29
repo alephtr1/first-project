@@ -2391,8 +2391,21 @@
                 }
 
                 // Check if we have tool calls to execute
-                const validToolCalls = toolCalls.filter(tc => tc && tc.function?.name === 'web_search');
+                // Filter for valid web_search calls with proper arguments
+                const validToolCalls = toolCalls.filter(tc => {
+                    if (!tc || tc.function?.name !== 'web_search') return false;
+                    // Validate arguments is parseable JSON
+                    try {
+                        const args = JSON.parse(tc.function.arguments);
+                        return args && args.query;
+                    } catch {
+                        return false;
+                    }
+                });
+
                 if (validToolCalls.length > 0 && messagesForToolLoop) {
+                    console.log('[Web Search] Tool calls detected:', JSON.stringify(validToolCalls, null, 2));
+
                     // Show searching status
                     if (onUpdate) {
                         onUpdate({ content: content + '\n\n🔍 *Searching the web...*', reasoning });
@@ -2403,13 +2416,16 @@
                     for (const tc of validToolCalls) {
                         try {
                             const args = JSON.parse(tc.function.arguments);
+                            console.log('[Web Search] Executing search for:', args.query);
                             const searchResult = await executeWebSearch(args.query);
+                            console.log('[Web Search] Got result:', searchResult.substring(0, 200) + '...');
                             toolResults.push({
                                 tool_call_id: tc.id,
                                 role: 'tool',
                                 content: searchResult
                             });
                         } catch (e) {
+                            console.error('[Web Search] Error:', e);
                             toolResults.push({
                                 tool_call_id: tc.id,
                                 role: 'tool',
@@ -2419,9 +2435,20 @@
                     }
 
                     // Build messages with tool call and results
+                    // Note: function.arguments must be a string (JSON-encoded), not parsed object
                     const continueMessages = [
                         ...messagesForToolLoop,
-                        { role: 'assistant', tool_calls: validToolCalls.map(tc => ({ id: tc.id, type: 'function', function: tc.function })) },
+                        {
+                            role: 'assistant',
+                            tool_calls: validToolCalls.map(tc => ({
+                                id: tc.id,
+                                type: 'function',
+                                function: {
+                                    name: tc.function.name,
+                                    arguments: tc.function.arguments // Keep as string
+                                }
+                            }))
+                        },
                         ...toolResults
                     ];
 
@@ -2434,6 +2461,8 @@
                     if (reasoningEffort && reasoningEffort !== 'none') {
                         continueBody.reasoning = { effort: reasoningEffort };
                     }
+
+                    console.log('[Web Search] Sending continuation request:', JSON.stringify(continueBody, null, 2));
 
                     const continueResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                         method: 'POST',
