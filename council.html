@@ -2250,12 +2250,54 @@
                 requestBody.reasoning = { effort: reasoningEffort };
             }
 
-            // Add web search support
+            // Add web search support using tools array approach
+            // When OFF: don't include tools array at all (model can't call tools that don't exist)
+            // When ON: include tools with tool_choice: "auto" so model decides when to search
             if (webSearch) {
                 const isPerplexity = modelId.toLowerCase().includes('perplexity');
                 if (!isPerplexity) {
-                    requestBody.plugins = [{ id: 'web' }];
+                    requestBody.tools = [{
+                        type: 'function',
+                        function: {
+                            name: 'web_search',
+                            description: 'Search the web for current information. Use this when the user asks about recent events, needs up-to-date information, or when you need to verify facts.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    query: {
+                                        type: 'string',
+                                        description: 'The search query'
+                                    }
+                                },
+                                required: ['query']
+                            }
+                        }
+                    }];
+                    requestBody.tool_choice = 'auto';
                 }
+            }
+
+            // Helper function to execute web search using OpenRouter's plugin
+            async function executeWebSearch(query) {
+                const searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${elements.apiKey.value}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'Council'
+                    },
+                    body: JSON.stringify({
+                        model: 'openai/gpt-4o-mini',
+                        messages: [{ role: 'user', content: query }],
+                        plugins: [{ id: 'web', max_results: 5 }]
+                    })
+                });
+                if (!searchResponse.ok) {
+                    throw new Error('Web search failed');
+                }
+                const result = await searchResponse.json();
+                return result.choices?.[0]?.message?.content || 'No results found';
             }
 
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -2275,63 +2317,179 @@
                 throw new Error(error.error?.message || `API error: ${response.status}`);
             }
 
-            // Parse SSE stream
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let content = '';
-            let reasoning = '';
+            // Parse SSE stream with tool call support
+            async function parseStream(response, onUpdate, messagesForToolLoop) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let content = '';
+                let reasoning = '';
+                let toolCalls = [];
+                let currentToolCall = null;
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
 
-                        try {
-                            const parsed = JSON.parse(data);
-                            const delta = parsed.choices?.[0]?.delta;
+                            try {
+                                const parsed = JSON.parse(data);
+                                const delta = parsed.choices?.[0]?.delta;
 
-                            if (delta) {
-                                // Handle content
-                                if (delta.content) {
-                                    content += delta.content;
-                                }
+                                if (delta) {
+                                    // Handle content
+                                    if (delta.content) {
+                                        content += delta.content;
+                                    }
 
-                                // Handle reasoning (prefer delta.reasoning, fallback to reasoning_details)
-                                if (delta.reasoning) {
-                                    reasoning += delta.reasoning;
-                                } else if (delta.reasoning_details) {
-                                    // Only use reasoning_details if reasoning is not present
-                                    for (const detail of delta.reasoning_details) {
-                                        if (detail.text) {
-                                            reasoning += detail.text;
-                                        } else if (detail.summary) {
-                                            reasoning += detail.summary;
+                                    // Handle tool calls
+                                    if (delta.tool_calls) {
+                                        for (const tc of delta.tool_calls) {
+                                            if (tc.index !== undefined) {
+                                                if (!toolCalls[tc.index]) {
+                                                    toolCalls[tc.index] = { id: '', function: { name: '', arguments: '' } };
+                                                }
+                                                if (tc.id) toolCalls[tc.index].id = tc.id;
+                                                if (tc.function?.name) toolCalls[tc.index].function.name = tc.function.name;
+                                                if (tc.function?.arguments) toolCalls[tc.index].function.arguments += tc.function.arguments;
+                                            }
                                         }
                                     }
-                                }
 
-                                // Call update callback
-                                if (onUpdate) {
-                                    onUpdate({ content, reasoning });
+                                    // Handle reasoning (prefer delta.reasoning, fallback to reasoning_details)
+                                    if (delta.reasoning) {
+                                        reasoning += delta.reasoning;
+                                    } else if (delta.reasoning_details) {
+                                        // Only use reasoning_details if reasoning is not present
+                                        for (const detail of delta.reasoning_details) {
+                                            if (detail.text) {
+                                                reasoning += detail.text;
+                                            } else if (detail.summary) {
+                                                reasoning += detail.summary;
+                                            }
+                                        }
+                                    }
+
+                                    // Call update callback
+                                    if (onUpdate) {
+                                        onUpdate({ content, reasoning });
+                                    }
                                 }
+                            } catch (e) {
+                                // Ignore parse errors for SSE comments
                             }
-                        } catch (e) {
-                            // Ignore parse errors for SSE comments
                         }
                     }
                 }
+
+                // Check if we have tool calls to execute
+                // Filter for valid web_search calls with proper arguments
+                const validToolCalls = toolCalls.filter(tc => {
+                    if (!tc || tc.function?.name !== 'web_search') return false;
+                    // Validate arguments is parseable JSON
+                    try {
+                        const args = JSON.parse(tc.function.arguments);
+                        return args && args.query;
+                    } catch {
+                        return false;
+                    }
+                });
+
+                if (validToolCalls.length > 0 && messagesForToolLoop) {
+                    console.log('[Web Search] Tool calls detected:', JSON.stringify(validToolCalls, null, 2));
+
+                    // Show searching status
+                    if (onUpdate) {
+                        onUpdate({ content: content + '\n\n🔍 *Searching the web...*', reasoning });
+                    }
+
+                    // Execute web searches and collect results
+                    const toolResults = [];
+                    for (const tc of validToolCalls) {
+                        try {
+                            const args = JSON.parse(tc.function.arguments);
+                            console.log('[Web Search] Executing search for:', args.query);
+                            const searchResult = await executeWebSearch(args.query);
+                            console.log('[Web Search] Got result:', searchResult.substring(0, 200) + '...');
+                            toolResults.push({
+                                tool_call_id: tc.id,
+                                role: 'tool',
+                                content: searchResult
+                            });
+                        } catch (e) {
+                            console.error('[Web Search] Error:', e);
+                            toolResults.push({
+                                tool_call_id: tc.id,
+                                role: 'tool',
+                                content: 'Search failed: ' + e.message
+                            });
+                        }
+                    }
+
+                    // Build messages with tool call and results
+                    // Note: function.arguments must be a string (JSON-encoded), not parsed object
+                    const continueMessages = [
+                        ...messagesForToolLoop,
+                        {
+                            role: 'assistant',
+                            tool_calls: validToolCalls.map(tc => ({
+                                id: tc.id,
+                                type: 'function',
+                                function: {
+                                    name: tc.function.name,
+                                    arguments: tc.function.arguments // Keep as string
+                                }
+                            }))
+                        },
+                        ...toolResults
+                    ];
+
+                    // Make follow-up request without tools (to get final response)
+                    const continueBody = {
+                        model: modelId,
+                        messages: continueMessages,
+                        stream: true
+                    };
+                    if (reasoningEffort && reasoningEffort !== 'none') {
+                        continueBody.reasoning = { effort: reasoningEffort };
+                    }
+
+                    console.log('[Web Search] Sending continuation request:', JSON.stringify(continueBody, null, 2));
+
+                    const continueResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${elements.apiKey.value}`,
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Council'
+                        },
+                        body: JSON.stringify(continueBody),
+                        signal: state.abortController.signal
+                    });
+
+                    if (!continueResponse.ok) {
+                        const error = await continueResponse.json().catch(() => ({}));
+                        throw new Error(error.error?.message || `API error: ${continueResponse.status}`);
+                    }
+
+                    // Parse the continuation response (no tool loop, just get content)
+                    const continueResult = await parseStream(continueResponse, onUpdate, null);
+                    return { content: continueResult.content, reasoning: reasoning + continueResult.reasoning };
+                }
+
+                return { content, reasoning };
             }
 
-            return { content, reasoning };
+            return await parseStream(response, onUpdate, webSearch ? messages : null);
         }
 
         // Handle send/stop button click
