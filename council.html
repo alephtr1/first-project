@@ -633,6 +633,27 @@
             font-weight: 500;
         }
 
+        .backup-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            color: #f0883e;
+        }
+
+        .backup-checkbox input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .backup-checkbox label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
         .backup-buttons {
             display: flex;
             gap: 8px;
@@ -1180,6 +1201,10 @@
                 </div>
                 <div class="backup-section">
                     <label>Data Backup</label>
+                    <div class="backup-checkbox">
+                        <input type="checkbox" id="includeApiKey">
+                        <label for="includeApiKey">Include API Key (risky if shared)</label>
+                    </div>
                     <div class="backup-buttons">
                         <button class="backup-btn export" id="exportBtn">Export All</button>
                         <button class="backup-btn import" id="importBtn">Import</button>
@@ -1280,7 +1305,8 @@
             chatList: document.getElementById('chatList'),
             exportBtn: document.getElementById('exportBtn'),
             importBtn: document.getElementById('importBtn'),
-            importFile: document.getElementById('importFile')
+            importFile: document.getElementById('importFile'),
+            includeApiKey: document.getElementById('includeApiKey')
         };
 
         // Initialize
@@ -1342,10 +1368,13 @@
             const data = {
                 version: 1,
                 exportDate: new Date().toISOString(),
-                apiKey: elements.apiKey.value,
                 models: state.models,
                 chats: state.chats
             };
+
+            if (elements.includeApiKey.checked) {
+                data.apiKey = elements.apiKey.value;
+            }
 
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
