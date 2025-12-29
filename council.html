@@ -1956,13 +1956,11 @@
                                     content += delta.content;
                                 }
 
-                                // Handle reasoning
+                                // Handle reasoning (prefer delta.reasoning, fallback to reasoning_details)
                                 if (delta.reasoning) {
                                     reasoning += delta.reasoning;
-                                }
-
-                                // Handle reasoning_details array
-                                if (delta.reasoning_details) {
+                                } else if (delta.reasoning_details) {
+                                    // Only use reasoning_details if reasoning is not present
                                     for (const detail of delta.reasoning_details) {
                                         if (detail.text) {
                                             reasoning += detail.text;
