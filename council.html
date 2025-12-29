@@ -551,16 +551,16 @@
 
         .reasoning-labels {
             display: flex;
-            justify-content: space-between;
             margin-top: 6px;
-            padding: 0 8px;
             font-size: 10px;
             color: #6e7681;
         }
 
         .reasoning-labels span {
+            flex: 1;
+            text-align: center;
             cursor: pointer;
-            padding: 2px 4px;
+            padding: 2px 0;
             border-radius: 3px;
             transition: color 0.2s;
         }
@@ -576,8 +576,7 @@
 
         .reasoning-labels span.xhigh {
             color: #f0883e;
-            min-width: 0;
-            text-align: right;
+            line-height: 1.2;
         }
 
         .reasoning-labels span.xhigh.active {
@@ -1678,8 +1677,13 @@
 
                 reasoningLabelsText.forEach((label, i) => {
                     const span = document.createElement('span');
-                    span.textContent = label;
-                    if (i === 5) span.classList.add('xhigh');
+                    if (i === 5) {
+                        // X-High with line break
+                        span.innerHTML = '⚡X-<br>High';
+                        span.classList.add('xhigh');
+                    } else {
+                        span.textContent = label;
+                    }
                     if (i === currentLevel) span.classList.add('active');
                     span.addEventListener('click', () => {
                         slider.value = i;
