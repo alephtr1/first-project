@@ -599,6 +599,52 @@
             margin-bottom: 0;
         }
 
+        /* Thinking blocks */
+        .thinking-block {
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .thinking-block summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #8b949e;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+
+        .thinking-block summary:hover {
+            color: #e6edf3;
+        }
+
+        .thinking-block summary::marker {
+            content: '';
+        }
+
+        .thinking-block summary .thinking-icon {
+            transition: transform 0.2s;
+        }
+
+        .thinking-block[open] summary .thinking-icon {
+            transform: rotate(90deg);
+        }
+
+        .thinking-content {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #8b949e;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
         /* Edit mode */
         .message.editing .message-content {
             display: none;
@@ -1482,12 +1528,15 @@
                 `;
             }
 
+            // Use formatMessageContent for assistant messages (handles thinking blocks)
+            const contentHtml = isUser ? escapeHtml(msg.content) : formatMessageContent(msg.content);
+
             messageDiv.innerHTML = `
                 <div class="message-header">
                     <span class="model-badge ${colorClass}">${badgeText}</span>
                     ${actionsHtml}
                 </div>
-                <div class="message-content">${escapeHtml(msg.content)}</div>
+                <div class="message-content">${contentHtml}</div>
             `;
 
             if (isUser) {
@@ -1637,6 +1686,48 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Format message content with collapsible thinking blocks
+        function formatMessageContent(content) {
+            // Match <think>...</think> blocks (case insensitive, handles newlines)
+            const thinkRegex = /<think>([\s\S]*?)<\/think>/gi;
+
+            let result = '';
+            let lastIndex = 0;
+            let match;
+            let thinkingCount = 0;
+
+            while ((match = thinkRegex.exec(content)) !== null) {
+                // Add any text before this thinking block
+                const beforeText = content.substring(lastIndex, match.index).trim();
+                if (beforeText) {
+                    result += escapeHtml(beforeText);
+                }
+
+                // Add the collapsible thinking block
+                const thinkingContent = match[1].trim();
+                thinkingCount++;
+                result += `<details class="thinking-block">
+                    <summary><span class="thinking-icon">▶</span> Thinking${thinkingCount > 1 ? ` (${thinkingCount})` : ''}</summary>
+                    <div class="thinking-content">${escapeHtml(thinkingContent)}</div>
+                </details>`;
+
+                lastIndex = match.index + match[0].length;
+            }
+
+            // Add any remaining text after the last thinking block
+            const afterText = content.substring(lastIndex).trim();
+            if (afterText) {
+                result += escapeHtml(afterText);
+            }
+
+            // If no thinking blocks found, just escape the content
+            if (thinkingCount === 0) {
+                return escapeHtml(content);
+            }
+
+            return result;
         }
 
         // Build messages array for API - NO default system prompt
