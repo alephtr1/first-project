@@ -550,20 +550,29 @@
         }
 
         .reasoning-labels {
-            display: flex;
+            position: relative;
             margin-top: 6px;
+            height: 28px;
             font-size: 10px;
             color: #6e7681;
         }
 
         .reasoning-labels span {
-            flex: 1;
-            text-align: center;
+            position: absolute;
+            top: 0;
             cursor: pointer;
-            padding: 2px 0;
+            padding: 2px 4px;
             border-radius: 3px;
             transition: color 0.2s;
         }
+
+        /* Position each label at exact slider stop */
+        .reasoning-labels span:nth-child(1) { left: 0; }
+        .reasoning-labels span:nth-child(2) { left: 20%; transform: translateX(-50%); }
+        .reasoning-labels span:nth-child(3) { left: 40%; transform: translateX(-50%); }
+        .reasoning-labels span:nth-child(4) { left: 60%; transform: translateX(-50%); }
+        .reasoning-labels span:nth-child(5) { left: 80%; transform: translateX(-50%); }
+        .reasoning-labels span:nth-child(6) { right: 0; text-align: right; }
 
         .reasoning-labels span:hover {
             color: #e6edf3;
