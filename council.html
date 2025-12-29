@@ -279,12 +279,7 @@
             border: 1px solid #30363d;
             border-radius: 8px;
             padding: 12px;
-            cursor: grab;
             transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-        }
-
-        .model-card:active {
-            cursor: grabbing;
         }
 
         .model-card.dragging {
@@ -296,6 +291,39 @@
         .model-card.drag-over {
             border-color: #58a6ff;
             background: #161b22;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            padding: 4px 2px;
+            color: #484f58;
+            font-size: 14px;
+            line-height: 1;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transition: color 0.2s;
+        }
+
+        .drag-handle:hover {
+            color: #8b949e;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .drag-handle-dots {
+            display: flex;
+            gap: 2px;
+        }
+
+        .drag-handle-dots span {
+            width: 4px;
+            height: 4px;
+            background: currentColor;
+            border-radius: 50%;
         }
 
         .model-card-header {
@@ -1337,7 +1365,6 @@
             state.models.forEach((model, index) => {
                 const card = document.createElement('div');
                 card.className = 'model-card';
-                card.draggable = true;
                 card.dataset.index = index;
 
                 // Drag event handlers
@@ -1349,6 +1376,7 @@
 
                 card.addEventListener('dragend', () => {
                     card.classList.remove('dragging');
+                    card.draggable = false;
                     draggedModelIndex = null;
                     document.querySelectorAll('.model-card.drag-over').forEach(el => {
                         el.classList.remove('drag-over');
@@ -1382,6 +1410,18 @@
                 const header = document.createElement('div');
                 header.className = 'model-card-header';
 
+                // Drag handle - only this triggers dragging
+                const dragHandle = document.createElement('div');
+                dragHandle.className = 'drag-handle';
+                dragHandle.innerHTML = `
+                    <div class="drag-handle-dots"><span></span><span></span></div>
+                    <div class="drag-handle-dots"><span></span><span></span></div>
+                    <div class="drag-handle-dots"><span></span><span></span></div>
+                `;
+                dragHandle.addEventListener('mousedown', () => {
+                    card.draggable = true;
+                });
+
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-model-btn';
                 removeBtn.innerHTML = '−';
@@ -1399,9 +1439,8 @@
                     state.models[index].id = e.target.value;
                     saveSettings();
                 });
-                // Prevent drag when interacting with input
-                input.addEventListener('mousedown', (e) => e.stopPropagation());
 
+                header.appendChild(dragHandle);
                 header.appendChild(removeBtn);
                 header.appendChild(input);
 
