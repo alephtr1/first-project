@@ -513,10 +513,6 @@
             display: block;
         }
 
-        .reasoning-slider-track {
-            padding: 0 8px;
-        }
-
         .reasoning-slider {
             width: 100%;
             height: 6px;
@@ -557,7 +553,6 @@
             display: flex;
             justify-content: space-between;
             margin-top: 6px;
-            padding: 0 8px;
             font-size: 10px;
             color: #6e7681;
         }
@@ -580,8 +575,6 @@
 
         .reasoning-labels span.xhigh {
             color: #f0883e;
-            min-width: 0;
-            text-align: right;
         }
 
         .reasoning-labels span.xhigh.active {
@@ -1704,12 +1697,8 @@
                 });
                 slider.addEventListener('mousedown', (e) => e.stopPropagation());
 
-                const sliderTrack = document.createElement('div');
-                sliderTrack.className = 'reasoning-slider-track';
-                sliderTrack.appendChild(slider);
-
                 reasoningContainer.appendChild(reasoningLabel);
-                reasoningContainer.appendChild(sliderTrack);
+                reasoningContainer.appendChild(slider);
                 reasoningContainer.appendChild(labelsDiv);
 
                 card.appendChild(header);
