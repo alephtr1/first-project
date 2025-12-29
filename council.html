@@ -2352,6 +2352,7 @@
 
                                     // Handle tool calls
                                     if (delta.tool_calls) {
+                                        console.log('[Web Search] Delta tool_calls:', JSON.stringify(delta.tool_calls));
                                         for (const tc of delta.tool_calls) {
                                             if (tc.index !== undefined) {
                                                 if (!toolCalls[tc.index]) {
@@ -2389,6 +2390,9 @@
                         }
                     }
                 }
+
+                // Log accumulated tool calls for debugging
+                console.log('[Web Search] Stream ended. Accumulated tool calls:', JSON.stringify(toolCalls));
 
                 // Check if we have tool calls to execute
                 // Filter for valid web_search calls with proper arguments
