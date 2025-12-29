@@ -1528,14 +1528,26 @@
                 `;
             }
 
-            // Use formatMessageContent for assistant messages (handles thinking blocks)
-            const contentHtml = isUser ? escapeHtml(msg.content) : formatMessageContent(msg.content);
+            // Build reasoning block HTML if present
+            let reasoningHtml = '';
+            if (!isUser && msg.reasoning) {
+                reasoningHtml = `
+                    <details class="thinking-block">
+                        <summary><span class="thinking-icon">▶</span> Reasoning</summary>
+                        <div class="thinking-content">${escapeHtml(msg.reasoning)}</div>
+                    </details>
+                `;
+            }
+
+            // Use escapeHtml for content (reasoning is separate now)
+            const contentHtml = escapeHtml(msg.content);
 
             messageDiv.innerHTML = `
                 <div class="message-header">
                     <span class="model-badge ${colorClass}">${badgeText}</span>
                     ${actionsHtml}
                 </div>
+                ${reasoningHtml}
                 <div class="message-content">${contentHtml}</div>
             `;
 
@@ -1551,14 +1563,89 @@
         }
 
         // Add message to chat
-        function addMessage(role, content, model = null, modelIndex = null) {
+        function addMessage(role, content, model = null, modelIndex = null, reasoning = '') {
             elements.emptyState.style.display = 'none';
 
-            const msg = { role, content, model, modelIndex };
+            const msg = { role, content, model, modelIndex, reasoning };
             const index = state.messages.length;
             state.messages.push(msg);
             addMessageToDOM(msg, index);
             elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+
+        // Add streaming message placeholder with reasoning section
+        function addStreamingMessage(model, modelIndex) {
+            elements.emptyState.style.display = 'none';
+
+            const msg = { role: 'assistant', content: '', model, modelIndex, reasoning: '' };
+            const index = state.messages.length;
+            state.messages.push(msg);
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant streaming';
+            messageDiv.dataset.index = index;
+
+            const colorClass = modelColors[modelIndex % modelColors.length];
+            const badgeText = getShortModelName(model);
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="model-badge ${colorClass}">${badgeText}</span>
+                    <div class="message-actions">
+                        <button class="msg-action-btn retry" title="Regenerate">${icons.retry}</button>
+                        <button class="msg-action-btn delete" title="Delete">${icons.delete}</button>
+                    </div>
+                </div>
+                <details class="thinking-block" open>
+                    <summary><span class="thinking-icon">▶</span> Reasoning</summary>
+                    <div class="thinking-content"></div>
+                </details>
+                <div class="message-content"></div>
+            `;
+
+            messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
+            messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
+
+            elements.chatContainer.appendChild(messageDiv);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+            return { messageDiv, index };
+        }
+
+        // Update streaming message with new content
+        function updateStreamingMessage(messageDiv, index, content, reasoning) {
+            const reasoningEl = messageDiv.querySelector('.thinking-content');
+            const contentEl = messageDiv.querySelector('.message-content');
+            const thinkingBlock = messageDiv.querySelector('.thinking-block');
+
+            // Update reasoning
+            if (reasoning) {
+                reasoningEl.textContent = reasoning;
+                thinkingBlock.style.display = '';
+            } else {
+                thinkingBlock.style.display = 'none';
+            }
+
+            // Update content
+            contentEl.textContent = content;
+
+            // Update state
+            state.messages[index].content = content;
+            state.messages[index].reasoning = reasoning;
+
+            // Auto-scroll
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+
+        // Finalize streaming message
+        function finalizeStreamingMessage(messageDiv) {
+            messageDiv.classList.remove('streaming');
+
+            // Close the reasoning block after streaming completes
+            const thinkingBlock = messageDiv.querySelector('.thinking-block');
+            if (thinkingBlock) {
+                thinkingBlock.removeAttribute('open');
+            }
         }
 
         // Start editing a user message
@@ -1629,23 +1716,48 @@
             state.isProcessing = true;
             updateSendButton();
 
+            // Get the message element and prepare for streaming
+            const messageDiv = elements.chatContainer.querySelector(`.message[data-index="${index}"]`);
+
             try {
-                const colorClass = modelColors[modelIndex % modelColors.length];
-                showTyping(getShortModelName(msg.model), colorClass);
                 setStatus(`Regenerating ${getShortModelName(msg.model)}...`);
+
+                // Reset message for streaming
+                state.messages[index].content = '';
+                state.messages[index].reasoning = '';
+
+                // Add streaming class and reasoning block if not present
+                messageDiv.classList.add('streaming');
+                let thinkingBlock = messageDiv.querySelector('.thinking-block');
+                let contentEl = messageDiv.querySelector('.message-content');
+
+                if (!thinkingBlock) {
+                    thinkingBlock = document.createElement('details');
+                    thinkingBlock.className = 'thinking-block';
+                    thinkingBlock.setAttribute('open', '');
+                    thinkingBlock.innerHTML = `
+                        <summary><span class="thinking-icon">▶</span> Reasoning</summary>
+                        <div class="thinking-content"></div>
+                    `;
+                    contentEl.parentNode.insertBefore(thinkingBlock, contentEl);
+                } else {
+                    thinkingBlock.setAttribute('open', '');
+                    thinkingBlock.querySelector('.thinking-content').textContent = '';
+                }
+                contentEl.textContent = '';
 
                 const contextMessages = state.messages.slice(0, index);
                 const apiMessages = buildApiMessages(modelConfig, contextMessages);
-                const response = await callModel(msg.model, apiMessages, modelConfig.webSearch);
 
-                hideTyping();
+                const response = await callModel(msg.model, apiMessages, modelConfig.webSearch, ({ content, reasoning }) => {
+                    updateStreamingMessage(messageDiv, index, content, reasoning);
+                });
 
-                state.messages[index].content = response;
-                renderMessages();
+                finalizeStreamingMessage(messageDiv);
                 setStatus('Ready');
                 saveCurrentChat();
             } catch (error) {
-                hideTyping();
+                messageDiv.classList.remove('streaming');
                 if (error.name !== 'AbortError') {
                     setStatus('Error: ' + error.message, 'error');
                     console.error('API Error:', error);
@@ -1769,25 +1881,30 @@
             return apiMessages;
         }
 
-        // Call OpenRouter API
-        async function callModel(modelId, messages, webSearch = false) {
+        // Call OpenRouter API with streaming
+        async function callModel(modelId, messages, webSearch = false, onUpdate = null) {
             state.abortController = new AbortController();
 
             const requestBody = {
                 model: modelId,
-                messages: messages
+                messages: messages,
+                stream: true
             };
+
+            // Enable reasoning for thinking models
+            const isThinkingModel = modelId.toLowerCase().includes('deepseek') ||
+                                    modelId.toLowerCase().includes('r1') ||
+                                    modelId.toLowerCase().includes('thinking') ||
+                                    modelId.toLowerCase().includes('reasoner');
+
+            if (isThinkingModel) {
+                requestBody.reasoning = { enabled: true };
+            }
 
             // Add web search support
             if (webSearch) {
-                // Check if model has native search (e.g., Perplexity)
                 const isPerplexity = modelId.toLowerCase().includes('perplexity');
-
-                if (isPerplexity) {
-                    // Perplexity models have native search enabled by default
-                    // No additional config needed
-                } else {
-                    // Use OpenRouter's web search plugin for other models
+                if (!isPerplexity) {
                     requestBody.plugins = [{ id: 'web' }];
                 }
             }
@@ -1809,8 +1926,65 @@
                 throw new Error(error.error?.message || `API error: ${response.status}`);
             }
 
-            const data = await response.json();
-            return data.choices[0].message.content;
+            // Parse SSE stream
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let content = '';
+            let reasoning = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta;
+
+                            if (delta) {
+                                // Handle content
+                                if (delta.content) {
+                                    content += delta.content;
+                                }
+
+                                // Handle reasoning
+                                if (delta.reasoning) {
+                                    reasoning += delta.reasoning;
+                                }
+
+                                // Handle reasoning_details array
+                                if (delta.reasoning_details) {
+                                    for (const detail of delta.reasoning_details) {
+                                        if (detail.text) {
+                                            reasoning += detail.text;
+                                        } else if (detail.summary) {
+                                            reasoning += detail.summary;
+                                        }
+                                    }
+                                }
+
+                                // Call update callback
+                                if (onUpdate) {
+                                    onUpdate({ content, reasoning });
+                                }
+                            }
+                        } catch (e) {
+                            // Ignore parse errors for SSE comments
+                        }
+                    }
+                }
+            }
+
+            return { content, reasoning };
         }
 
         // Handle send/stop button click
@@ -1888,16 +2062,20 @@
                 for (const model of activeModels) {
                     if (!state.isProcessing) break;
 
-                    const colorClass = modelColors[model.index % modelColors.length];
-                    showTyping(getShortModelName(model.id), colorClass);
-                    setStatus(`Waiting for ${getShortModelName(model.id)}...`);
+                    setStatus(`${getShortModelName(model.id)} is thinking...`);
+
+                    // Create streaming message bubble
+                    const { messageDiv, index } = addStreamingMessage(model.id, model.index);
 
                     const apiMessages = buildApiMessages(model);
-                    const response = await callModel(model.id, apiMessages, model.webSearch);
 
-                    hideTyping();
+                    // Stream response with live updates
+                    const response = await callModel(model.id, apiMessages, model.webSearch, ({ content, reasoning }) => {
+                        updateStreamingMessage(messageDiv, index, content, reasoning);
+                    });
 
-                    addMessage('assistant', response, model.id, model.index);
+                    // Finalize the message
+                    finalizeStreamingMessage(messageDiv);
                 }
 
                 state.currentRound++;
@@ -1913,7 +2091,6 @@
                     setStatus('Ready');
                 }
             } catch (error) {
-                hideTyping();
                 if (error.name !== 'AbortError') {
                     setStatus('Error: ' + error.message, 'error');
                     console.error('API Error:', error);
