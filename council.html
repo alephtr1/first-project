@@ -406,6 +406,71 @@
             color: #484f58;
         }
 
+        .model-option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding: 6px 0;
+        }
+
+        .model-option-label {
+            font-size: 0.75rem;
+            color: #8b949e;
+        }
+
+        .mini-toggle {
+            position: relative;
+            width: 28px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .mini-toggle input {
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+            z-index: 1;
+            margin: 0;
+        }
+
+        .mini-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #30363d;
+            border-radius: 16px;
+            transition: 0.3s;
+        }
+
+        .mini-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 2px;
+            bottom: 2px;
+            background: #8b949e;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .mini-toggle input:checked + .mini-toggle-slider {
+            background: #1f6feb;
+        }
+
+        .mini-toggle input:checked + .mini-toggle-slider:before {
+            transform: translateX(12px);
+            background: #fff;
+        }
+
         .add-model-btn {
             background: #21262d;
             border: 1px solid #30363d;
@@ -1007,15 +1072,16 @@
 
             if (savedModels.length > 0) {
                 if (typeof savedModels[0] === 'string') {
-                    state.models = savedModels.map(id => ({ id, systemPrompt: '' }));
+                    state.models = savedModels.map(id => ({ id, systemPrompt: '', webSearch: false }));
                 } else {
-                    state.models = savedModels;
+                    // Ensure webSearch property exists for backward compatibility
+                    state.models = savedModels.map(m => ({ ...m, webSearch: m.webSearch || false }));
                 }
             } else {
                 state.models = [
-                    { id: '', systemPrompt: '' },
-                    { id: '', systemPrompt: '' },
-                    { id: '', systemPrompt: '' }
+                    { id: '', systemPrompt: '', webSearch: false },
+                    { id: '', systemPrompt: '', webSearch: false },
+                    { id: '', systemPrompt: '', webSearch: false }
                 ];
             }
         }
@@ -1236,9 +1302,35 @@
                     promptWrapper.classList.add('open');
                 }
 
+                // Web search toggle
+                const webSearchRow = document.createElement('div');
+                webSearchRow.className = 'model-option-row';
+
+                const webSearchLabel = document.createElement('span');
+                webSearchLabel.className = 'model-option-label';
+                webSearchLabel.textContent = 'Web Search';
+
+                const webSearchToggle = document.createElement('div');
+                webSearchToggle.className = 'mini-toggle';
+                webSearchToggle.innerHTML = `
+                    <input type="checkbox" ${model.webSearch ? 'checked' : ''}>
+                    <span class="mini-toggle-slider"></span>
+                `;
+
+                const webSearchInput = webSearchToggle.querySelector('input');
+                webSearchInput.addEventListener('change', (e) => {
+                    state.models[index].webSearch = e.target.checked;
+                    saveSettings();
+                });
+                webSearchInput.addEventListener('mousedown', (e) => e.stopPropagation());
+
+                webSearchRow.appendChild(webSearchLabel);
+                webSearchRow.appendChild(webSearchToggle);
+
                 card.appendChild(header);
                 card.appendChild(toggle);
                 card.appendChild(promptWrapper);
+                card.appendChild(webSearchRow);
                 elements.modelList.appendChild(card);
             });
 
@@ -1255,7 +1347,7 @@
 
         // Add model
         function addModel() {
-            state.models.push({ id: '', systemPrompt: '' });
+            state.models.push({ id: '', systemPrompt: '', webSearch: false });
             saveSettings();
             renderModelList();
             const inputs = elements.modelList.querySelectorAll('.model-card-header input');
@@ -1495,7 +1587,7 @@
 
                 const contextMessages = state.messages.slice(0, index);
                 const apiMessages = buildApiMessages(modelConfig, contextMessages);
-                const response = await callModel(msg.model, apiMessages);
+                const response = await callModel(msg.model, apiMessages, modelConfig.webSearch);
 
                 hideTyping();
 
@@ -1587,8 +1679,27 @@
         }
 
         // Call OpenRouter API
-        async function callModel(modelId, messages) {
+        async function callModel(modelId, messages, webSearch = false) {
             state.abortController = new AbortController();
+
+            const requestBody = {
+                model: modelId,
+                messages: messages
+            };
+
+            // Add web search support
+            if (webSearch) {
+                // Check if model has native search (e.g., Perplexity)
+                const isPerplexity = modelId.toLowerCase().includes('perplexity');
+
+                if (isPerplexity) {
+                    // Perplexity models have native search enabled by default
+                    // No additional config needed
+                } else {
+                    // Use OpenRouter's web search plugin for other models
+                    requestBody.plugins = [{ id: 'web-search' }];
+                }
+            }
 
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
@@ -1598,10 +1709,7 @@
                     'HTTP-Referer': window.location.href,
                     'X-Title': 'Council'
                 },
-                body: JSON.stringify({
-                    model: modelId,
-                    messages: messages
-                }),
+                body: JSON.stringify(requestBody),
                 signal: state.abortController.signal
             });
 
@@ -1694,7 +1802,7 @@
                     setStatus(`Waiting for ${getShortModelName(model.id)}...`);
 
                     const apiMessages = buildApiMessages(model);
-                    const response = await callModel(model.id, apiMessages);
+                    const response = await callModel(model.id, apiMessages, model.webSearch);
 
                     hideTyping();
 
