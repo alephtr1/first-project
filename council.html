@@ -619,6 +619,52 @@
             color: #e6edf3;
         }
 
+        /* Backup Section */
+        .backup-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+        }
+
+        .backup-section label {
+            display: block;
+            margin-bottom: 12px;
+            color: #e6edf3;
+            font-weight: 500;
+        }
+
+        .backup-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .backup-btn {
+            flex: 1;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .backup-btn:hover {
+            background: #30363d;
+            color: #e6edf3;
+        }
+
+        .backup-btn.export:hover {
+            border-color: #238636;
+            color: #3fb950;
+        }
+
+        .backup-btn.import:hover {
+            border-color: #1f6feb;
+            color: #58a6ff;
+        }
+
         /* Chat Container */
         .chat-container {
             flex: 1;
@@ -1132,6 +1178,14 @@
                         <span>+</span> Add Model
                     </button>
                 </div>
+                <div class="backup-section">
+                    <label>Data Backup</label>
+                    <div class="backup-buttons">
+                        <button class="backup-btn export" id="exportBtn">Export All</button>
+                        <button class="backup-btn import" id="importBtn">Import</button>
+                    </div>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                </div>
             </div>
         </div>
 
@@ -1223,7 +1277,10 @@
             sendBtn: document.getElementById('sendBtn'),
             cookToggle: document.getElementById('cookToggle'),
             newChatBtn: document.getElementById('newChatBtn'),
-            chatList: document.getElementById('chatList')
+            chatList: document.getElementById('chatList'),
+            exportBtn: document.getElementById('exportBtn'),
+            importBtn: document.getElementById('importBtn'),
+            importFile: document.getElementById('importFile')
         };
 
         // Initialize
@@ -1278,6 +1335,72 @@
         // Save chats to localStorage
         function saveChats() {
             localStorage.setItem('council_chats', JSON.stringify(state.chats));
+        }
+
+        // Export all data
+        function exportAllData() {
+            const data = {
+                version: 1,
+                exportDate: new Date().toISOString(),
+                apiKey: elements.apiKey.value,
+                models: state.models,
+                chats: state.chats
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `council-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setStatus('Data exported successfully', 'success');
+        }
+
+        // Import data
+        function importData(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (!data.version) {
+                        setStatus('Invalid backup file', 'error');
+                        return;
+                    }
+
+                    // Restore API key
+                    if (data.apiKey) {
+                        elements.apiKey.value = data.apiKey;
+                    }
+
+                    // Restore models
+                    if (data.models && Array.isArray(data.models)) {
+                        state.models = data.models;
+                        renderModels();
+                    }
+
+                    // Restore chats
+                    if (data.chats && Array.isArray(data.chats)) {
+                        state.chats = data.chats;
+                        renderChatList();
+                        if (state.chats.length > 0) {
+                            loadChat(state.chats[0].id);
+                        }
+                    }
+
+                    saveSettings();
+                    saveChats();
+                    setStatus('Data imported successfully', 'success');
+
+                } catch (err) {
+                    setStatus('Failed to import: Invalid JSON', 'error');
+                }
+            };
+            reader.readAsText(file);
         }
 
         // Create new chat
@@ -1625,6 +1748,15 @@
             elements.apiKey.addEventListener('input', saveSettings);
             elements.addModelBtn.addEventListener('click', addModel);
             elements.newChatBtn.addEventListener('click', createNewChat);
+
+            elements.exportBtn.addEventListener('click', exportAllData);
+            elements.importBtn.addEventListener('click', () => elements.importFile.click());
+            elements.importFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    importData(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
 
             elements.cookToggle.addEventListener('change', (e) => {
                 state.cookMode = e.target.checked;
