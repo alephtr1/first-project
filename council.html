@@ -526,6 +526,7 @@
             -webkit-appearance: none;
             appearance: none;
             cursor: pointer;
+            margin: 0;
         }
 
         .reasoning-slider::-webkit-slider-thumb {
@@ -553,20 +554,30 @@
         }
 
         .reasoning-labels {
-            display: flex;
-            justify-content: space-between;
+            position: relative;
+            height: 20px;
             margin-top: 6px;
-            padding: 0 8px;
+            margin-left: 8px;
+            margin-right: 8px;
             font-size: 10px;
             color: #6e7681;
         }
 
         .reasoning-labels span {
+            position: absolute;
             cursor: pointer;
-            padding: 2px 4px;
+            padding: 2px 0;
             border-radius: 3px;
             transition: color 0.2s;
+            transform: translateX(-50%);
         }
+
+        .reasoning-labels span:nth-child(1) { left: 0; transform: none; }
+        .reasoning-labels span:nth-child(2) { left: 20%; }
+        .reasoning-labels span:nth-child(3) { left: 40%; }
+        .reasoning-labels span:nth-child(4) { left: 60%; }
+        .reasoning-labels span:nth-child(5) { left: 80%; }
+        .reasoning-labels span:nth-child(6) { left: 100%; transform: translateX(-100%); }
 
         .reasoning-labels span:hover {
             color: #e6edf3;
