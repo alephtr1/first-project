@@ -2609,6 +2609,7 @@
 
                 if (validToolCalls.length > 0 && messagesForToolLoop) {
                     console.log('[Web Search] Tool calls detected:', JSON.stringify(validToolCalls, null, 2));
+
                     // Show searching status
                     if (onUpdate) {
                         onUpdate({ content: content + '\n\n🔍 *Searching the web...*', reasoning });
