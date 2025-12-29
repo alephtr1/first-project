@@ -1852,28 +1852,41 @@
                 apiMessages.push({ role: 'system', content: modelConfig.systemPrompt.trim() });
             }
 
-            // Build conversation with new format to prevent "script" continuation
+            // Build conversation - only add context for multi-model scenarios
             for (let i = 0; i < messages.length; i++) {
                 const msg = messages[i];
 
                 if (msg.role === 'user') {
-                    // Check if there are AI responses after this user message
+                    // Check if there are multiple AI responses after this user message
                     const aiResponses = [];
                     let j = i + 1;
                     while (j < messages.length && messages[j].role === 'assistant') {
                         const aiMsg = messages[j];
-                        aiResponses.push(`- ${getShortModelName(aiMsg.model)} said: "${aiMsg.content}"`);
+                        aiResponses.push({ model: getShortModelName(aiMsg.model), content: aiMsg.content });
                         j++;
                     }
 
-                    if (aiResponses.length > 0) {
-                        // User message followed by AI responses - combine them
-                        const formattedContent = `${msg.content}\n\n---\nPrevious responses:\n${aiResponses.join('\n')}\n---\n\nYour turn to respond.`;
-                        apiMessages.push({ role: 'user', content: formattedContent });
-                        i = j - 1; // Skip the AI messages we just processed
+                    if (aiResponses.length > 1) {
+                        // Multiple models responded - show context of other models' responses
+                        const otherResponses = aiResponses
+                            .filter(r => r.model !== getShortModelName(modelConfig.id))
+                            .map(r => `${r.model}: "${r.content.substring(0, 200)}${r.content.length > 200 ? '...' : ''}"`)
+                            .join('\n');
+
+                        if (otherResponses) {
+                            const formattedContent = `${msg.content}\n\n[Other models said:\n${otherResponses}]`;
+                            apiMessages.push({ role: 'user', content: formattedContent });
+                        } else {
+                            apiMessages.push({ role: 'user', content: msg.content });
+                        }
+                        i = j - 1;
                     } else {
-                        // User message with no AI responses yet
-                        apiMessages.push({ role: 'user', content: msg.content + '\n\nYour turn to respond.' });
+                        // Single model or no responses yet - just send the message
+                        apiMessages.push({ role: 'user', content: msg.content });
+                        if (aiResponses.length === 1) {
+                            apiMessages.push({ role: 'assistant', content: aiResponses[0].content });
+                            i = j - 1;
+                        }
                     }
                 }
             }
