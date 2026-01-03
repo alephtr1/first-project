@@ -13,13 +13,4 @@ Key sections:
 - Model variants: :free, :thinking, :online, etc.
 
 ## Git Workflow
-1. Always fetch origin/main before creating a new branch
-2. Branch names must end with the session ID suffix (e.g., `-tt6dC`)
-3. Push with `git push -u origin <branch-name>`
-4. **Before creating a PR or when PR has conflicts**: Always rebase on latest main
-   ```bash
-   git fetch origin main
-   git rebase origin/main
-   git push --force-with-lease
-   ```
-5. If working on a task that might already have changes in main, fetch and check first
+Work directly on main branch. No feature branches, no PRs. Just commit and push to main.
