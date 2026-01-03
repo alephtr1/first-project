@@ -293,6 +293,21 @@
             background: #161b22;
         }
 
+        .model-card.disabled {
+            opacity: 0.5;
+        }
+
+        .model-card.disabled .model-input-wrapper input,
+        .model-card.disabled .system-prompt-toggle,
+        .model-card.disabled .system-prompt-wrapper,
+        .model-card.disabled .model-option-row {
+            pointer-events: none;
+        }
+
+        .model-enable-toggle {
+            margin-left: auto;
+        }
+
         .drag-handle {
             cursor: grab;
             padding: 4px 2px;
@@ -1390,20 +1405,21 @@
 
             if (savedModels.length > 0) {
                 if (typeof savedModels[0] === 'string') {
-                    state.models = savedModels.map(id => ({ id, systemPrompt: '', webSearch: false, reasoningEffort: 'none' }));
+                    state.models = savedModels.map(id => ({ id, systemPrompt: '', webSearch: false, reasoningEffort: 'none', enabled: true }));
                 } else {
                     // Ensure all properties exist for backward compatibility
                     state.models = savedModels.map(m => ({
                         ...m,
                         webSearch: m.webSearch || false,
-                        reasoningEffort: m.reasoningEffort || 'none'
+                        reasoningEffort: m.reasoningEffort || 'none',
+                        enabled: m.enabled !== false // Default to true for backward compatibility
                     }));
                 }
             } else {
                 state.models = [
-                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none' },
-                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none' },
-                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none' }
+                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none', enabled: true },
+                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none', enabled: true },
+                    { id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none', enabled: true }
                 ];
             }
         }
@@ -1769,8 +1785,30 @@
                 inputWrapper.appendChild(input);
                 inputWrapper.appendChild(autocomplete);
 
+                // Enable/disable toggle
+                const enableToggle = document.createElement('label');
+                enableToggle.className = 'mini-toggle model-enable-toggle';
+                enableToggle.title = model.enabled !== false ? 'Disable model' : 'Enable model';
+                enableToggle.innerHTML = `
+                    <input type="checkbox" ${model.enabled !== false ? 'checked' : ''}>
+                    <span class="mini-toggle-slider"></span>
+                `;
+                const enableCheckbox = enableToggle.querySelector('input');
+                enableCheckbox.addEventListener('change', (e) => {
+                    state.models[index].enabled = e.target.checked;
+                    card.classList.toggle('disabled', !e.target.checked);
+                    enableToggle.title = e.target.checked ? 'Disable model' : 'Enable model';
+                    saveSettings();
+                });
+
+                // Set initial disabled state
+                if (model.enabled === false) {
+                    card.classList.add('disabled');
+                }
+
                 header.appendChild(dragHandle);
                 header.appendChild(inputWrapper);
+                header.appendChild(enableToggle);
                 header.appendChild(removeBtn);
 
                 const toggle = document.createElement('div');
@@ -1903,7 +1941,7 @@
 
         // Add model
         function addModel() {
-            state.models.push({ id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none' });
+            state.models.push({ id: '', systemPrompt: '', webSearch: false, reasoningEffort: 'none', enabled: true });
             saveSettings();
             renderModelList();
             const inputs = elements.modelList.querySelectorAll('.model-input-wrapper input');
@@ -1979,7 +2017,7 @@
         function getActiveModels() {
             return state.models
                 .map((m, index) => ({ ...m, index }))
-                .filter(m => m.id.trim());
+                .filter(m => m.id.trim() && m.enabled !== false);
         }
 
         // Update status bar
