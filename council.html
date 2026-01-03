@@ -2053,7 +2053,7 @@
                 const parts = m.id.split('/');
                 return parts.length > 1 ? parts.slice(1).join('/') : m.id;
             });
-            elements.headerModels.textContent = modelNames.join(' · ');
+            elements.headerModels.textContent = modelNames.length > 0 ? `[${modelNames.join(' · ')}]` : '';
         }
 
         // Update status bar
