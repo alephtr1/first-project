@@ -839,6 +839,17 @@
             margin-bottom: 0;
         }
 
+        .message-content a {
+            color: #58a6ff;
+            text-decoration: none;
+            border-bottom: 1px dotted #58a6ff;
+        }
+
+        .message-content a:hover {
+            color: #79b8ff;
+            border-bottom-style: solid;
+        }
+
         /* Thinking blocks */
         .thinking-block {
             margin-bottom: 12px;
@@ -2457,7 +2468,36 @@
                     throw new Error('Web search failed');
                 }
                 const result = await searchResponse.json();
-                return result.choices?.[0]?.message?.content || 'No results found';
+                const message = result.choices?.[0]?.message;
+                const content = message?.content || 'No results found';
+                const annotations = message?.annotations || [];
+
+                // Apply citations to content
+                return applyCitations(content, annotations);
+            }
+
+            // Apply url_citation annotations as clickable links
+            function applyCitations(content, annotations) {
+                if (!annotations || annotations.length === 0) return content;
+
+                // Filter and sort url_citation annotations by start_index (descending to preserve indices)
+                const citations = annotations
+                    .filter(a => a.type === 'url_citation' && a.url_citation)
+                    .map(a => a.url_citation)
+                    .filter(c => c.url && typeof c.start_index === 'number' && typeof c.end_index === 'number')
+                    .sort((a, b) => b.start_index - a.start_index);
+
+                let result = content;
+                for (const citation of citations) {
+                    const { url, title, start_index, end_index } = citation;
+                    const citedText = result.slice(start_index, end_index);
+                    const linkTitle = title || url;
+                    // Create markdown-style link that marked.js will render
+                    const linkedText = `[${citedText}](${url} "${linkTitle}")`;
+                    result = result.slice(0, start_index) + linkedText + result.slice(end_index);
+                }
+
+                return result;
             }
 
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
