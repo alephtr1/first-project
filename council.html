@@ -127,12 +127,27 @@
             padding: 12px 20px;
             background: #161b22;
             border-bottom: 1px solid #30363d;
+            position: relative;
+        }
+
+        .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
         }
 
         .header h1 {
             font-size: 1.25rem;
             font-weight: 600;
             color: #e6edf3;
+            margin: 0;
+        }
+
+        .header-models {
+            font-size: 0.75rem;
+            color: #6e7681;
+            margin-top: 2px;
         }
 
         .settings-btn {
@@ -1246,7 +1261,11 @@
     <!-- Main Content -->
     <div class="main-content">
         <header class="header">
-            <h1>Council</h1>
+            <div></div><!-- Spacer for flex justify-content -->
+            <div class="header-center">
+                <h1>Council</h1>
+                <div class="header-models" id="headerModels"></div>
+            </div>
             <button class="settings-btn" id="settingsBtn">Settings</button>
         </header>
 
@@ -1382,7 +1401,8 @@
             exportBtn: document.getElementById('exportBtn'),
             importBtn: document.getElementById('importBtn'),
             importFile: document.getElementById('importFile'),
-            includeApiKey: document.getElementById('includeApiKey')
+            includeApiKey: document.getElementById('includeApiKey'),
+            headerModels: document.getElementById('headerModels')
         };
 
         // Initialize
@@ -1735,6 +1755,7 @@
                             input.value = item.dataset.id;
                             state.models[index].id = item.dataset.id;
                             saveSettings();
+                            updateHeaderModels();
                             autocomplete.classList.remove('open');
                         });
                     });
@@ -1745,6 +1766,7 @@
                 input.addEventListener('input', (e) => {
                     state.models[index].id = e.target.value;
                     saveSettings();
+                    updateHeaderModels();
                     selectedIndex = -1;
                     updateAutocomplete(e.target.value);
                 });
@@ -1770,6 +1792,7 @@
                             input.value = selectedItem.dataset.id;
                             state.models[index].id = selectedItem.dataset.id;
                             saveSettings();
+                            updateHeaderModels();
                             autocomplete.classList.remove('open');
                         }
                     } else if (e.key === 'Escape') {
@@ -1799,6 +1822,7 @@
                     card.classList.toggle('disabled', !e.target.checked);
                     enableToggle.title = e.target.checked ? 'Disable model' : 'Enable model';
                     saveSettings();
+                    updateHeaderModels();
                 });
 
                 // Set initial disabled state
@@ -1929,6 +1953,7 @@
             });
 
             updateRemoveButtons();
+            updateHeaderModels();
         }
 
         // Update remove button states
@@ -2018,6 +2043,17 @@
             return state.models
                 .map((m, index) => ({ ...m, index }))
                 .filter(m => m.id.trim() && m.enabled !== false);
+        }
+
+        // Update header with active model names
+        function updateHeaderModels() {
+            const activeModels = getActiveModels();
+            const modelNames = activeModels.map(m => {
+                // Remove provider prefix (e.g., google/gemini-pro → gemini-pro)
+                const parts = m.id.split('/');
+                return parts.length > 1 ? parts.slice(1).join('/') : m.id;
+            });
+            elements.headerModels.textContent = modelNames.join(' · ');
         }
 
         // Update status bar
