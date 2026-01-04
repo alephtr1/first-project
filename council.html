@@ -802,6 +802,19 @@
             margin-bottom: 8px;
         }
 
+        .message.assistant .message-header {
+            cursor: pointer;
+        }
+
+        .message.assistant.collapsed .thinking-block,
+        .message.assistant.collapsed .message-content {
+            display: none;
+        }
+
+        .message.assistant.collapsed .message-header {
+            margin-bottom: 0;
+        }
+
         .model-badge {
             font-size: 0.75rem;
             font-weight: 600;
@@ -2153,10 +2166,13 @@
                 messageDiv.querySelector('.edit').addEventListener('click', () => startEditMessage(index));
                 messageDiv.querySelector('.retry').addEventListener('click', () => retryFromMessage(index));
             } else {
-                messageDiv.querySelector('.copy').addEventListener('click', () => copyMessageContent(index, false));
-                messageDiv.querySelector('.copy-all').addEventListener('click', () => copyMessageContent(index, true));
-                messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
-                messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
+                messageDiv.querySelector('.copy').addEventListener('click', (e) => { e.stopPropagation(); copyMessageContent(index, false); });
+                messageDiv.querySelector('.copy-all').addEventListener('click', (e) => { e.stopPropagation(); copyMessageContent(index, true); });
+                messageDiv.querySelector('.retry').addEventListener('click', (e) => { e.stopPropagation(); retryAIMessage(index); });
+                messageDiv.querySelector('.delete').addEventListener('click', (e) => { e.stopPropagation(); deleteAIMessage(index); });
+                messageDiv.querySelector('.message-header').addEventListener('click', () => {
+                    messageDiv.classList.toggle('collapsed');
+                });
             }
 
             elements.chatContainer.appendChild(messageDiv);
@@ -2205,10 +2221,13 @@
                 <div class="message-content"></div>
             `;
 
-            messageDiv.querySelector('.copy').addEventListener('click', () => copyMessageContent(index, false));
-            messageDiv.querySelector('.copy-all').addEventListener('click', () => copyMessageContent(index, true));
-            messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
-            messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
+            messageDiv.querySelector('.copy').addEventListener('click', (e) => { e.stopPropagation(); copyMessageContent(index, false); });
+            messageDiv.querySelector('.copy-all').addEventListener('click', (e) => { e.stopPropagation(); copyMessageContent(index, true); });
+            messageDiv.querySelector('.retry').addEventListener('click', (e) => { e.stopPropagation(); retryAIMessage(index); });
+            messageDiv.querySelector('.delete').addEventListener('click', (e) => { e.stopPropagation(); deleteAIMessage(index); });
+            messageDiv.querySelector('.message-header').addEventListener('click', () => {
+                messageDiv.classList.toggle('collapsed');
+            });
 
             elements.chatContainer.appendChild(messageDiv);
             elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
