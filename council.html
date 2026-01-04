@@ -1352,7 +1352,9 @@
         const icons = {
             edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
             retry: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>`,
-            delete: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
+            delete: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+            copy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+            copyAll: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path><line x1="12" y1="15" x2="18" y2="15"></line><line x1="12" y1="18" x2="18" y2="18"></line></svg>`
         };
 
         // State
@@ -2116,6 +2118,8 @@
             } else {
                 actionsHtml = `
                     <div class="message-actions">
+                        <button class="msg-action-btn copy" title="Copy output">${icons.copy}</button>
+                        <button class="msg-action-btn copy-all" title="Copy with reasoning">${icons.copyAll}</button>
                         <button class="msg-action-btn retry" title="Regenerate">${icons.retry}</button>
                         <button class="msg-action-btn delete" title="Delete">${icons.delete}</button>
                     </div>
@@ -2149,6 +2153,8 @@
                 messageDiv.querySelector('.edit').addEventListener('click', () => startEditMessage(index));
                 messageDiv.querySelector('.retry').addEventListener('click', () => retryFromMessage(index));
             } else {
+                messageDiv.querySelector('.copy').addEventListener('click', () => copyMessageContent(index, false));
+                messageDiv.querySelector('.copy-all').addEventListener('click', () => copyMessageContent(index, true));
                 messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
                 messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
             }
@@ -2186,6 +2192,8 @@
                 <div class="message-header">
                     <span class="model-badge ${colorClass}">${badgeText}</span>
                     <div class="message-actions">
+                        <button class="msg-action-btn copy" title="Copy output">${icons.copy}</button>
+                        <button class="msg-action-btn copy-all" title="Copy with reasoning">${icons.copyAll}</button>
                         <button class="msg-action-btn retry" title="Regenerate">${icons.retry}</button>
                         <button class="msg-action-btn delete" title="Delete">${icons.delete}</button>
                     </div>
@@ -2197,6 +2205,8 @@
                 <div class="message-content"></div>
             `;
 
+            messageDiv.querySelector('.copy').addEventListener('click', () => copyMessageContent(index, false));
+            messageDiv.querySelector('.copy-all').addEventListener('click', () => copyMessageContent(index, true));
             messageDiv.querySelector('.retry').addEventListener('click', () => retryAIMessage(index));
             messageDiv.querySelector('.delete').addEventListener('click', () => deleteAIMessage(index));
 
@@ -2377,6 +2387,34 @@
 
             state.messages.splice(index, 1);
             renderMessages();
+        }
+
+        // Copy message content to clipboard
+        function copyMessageContent(index, includeReasoning) {
+            const msg = state.messages[index];
+            if (!msg || msg.role !== 'assistant') return;
+
+            let textToCopy = '';
+            if (includeReasoning && msg.reasoning) {
+                textToCopy = `[Reasoning]\n${msg.reasoning}\n\n[Output]\n${msg.content}`;
+            } else {
+                textToCopy = msg.content;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Brief visual feedback
+                const messageDiv = document.querySelector(`.message[data-index="${index}"]`);
+                if (messageDiv) {
+                    const btn = messageDiv.querySelector(includeReasoning ? '.copy-all' : '.copy');
+                    if (btn) {
+                        const originalColor = btn.style.color;
+                        btn.style.color = '#238636';
+                        setTimeout(() => { btn.style.color = originalColor; }, 500);
+                    }
+                }
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
         }
 
         // Add round separator
