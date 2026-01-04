@@ -2394,11 +2394,12 @@
             const msg = state.messages[index];
             if (!msg || msg.role !== 'assistant') return;
 
-            let textToCopy = '';
+            const modelName = msg.model || 'Unknown Model';
+            let textToCopy = `[${modelName}]\n\n`;
             if (includeReasoning && msg.reasoning) {
-                textToCopy = `[Reasoning]\n${msg.reasoning}\n\n[Output]\n${msg.content}`;
+                textToCopy += `[Reasoning]\n${msg.reasoning}\n\n[Output]\n${msg.content}`;
             } else {
-                textToCopy = msg.content;
+                textToCopy += msg.content;
             }
 
             navigator.clipboard.writeText(textToCopy).then(() => {
