@@ -2549,6 +2549,9 @@
                 stream: true
             };
 
+            // Log the payload being sent
+            console.log(`[${modelId}] API Payload:`, JSON.stringify(requestBody, null, 2));
+
             // Add reasoning effort if not 'none'
             if (reasoningEffort && reasoningEffort !== 'none') {
                 requestBody.reasoning = { effort: reasoningEffort };
